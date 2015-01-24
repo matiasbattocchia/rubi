@@ -1,7 +1,3 @@
-require 'bundler'
-Bundler.require
-require 'set'
-
 # DB = Sequel.connect 'postgres://localhost/warehouse?user=matias'
 
 # TODO: Inflecciones para los nombres de las tablas y columnas,
@@ -12,27 +8,6 @@ require 'set'
 # padre más el sufijo _id, mientras que se supone que la primary key
 # es simplemente id.
 
-class Graph
-  attr_reader :vertices, :edges
-
-  def initialize
-    @vertices = Set.new
-    @edges = Set.new
-  end
-end
-
-class Vertex
-  def initialize edges = nil, content = nil
-    @edges = edges
-    @content = content if content
-  end
-end
-
-class Edge
-  def initialize endpoints, content = nil
-    @content = content if content
-  end
-end
 
 #     def initialize
 #       dist = {}
