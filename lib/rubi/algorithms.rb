@@ -1,5 +1,27 @@
 require 'algorithms'
 
+class MinPriorityQueue < Containers::Heap
+  def initialize
+    super { |a, b| a.distance < b.distance }
+  end
+
+  def push(vertex, distance)
+    @heap.push(vertex_key(vertex, distance), vertex)
+  end
+
+  def decrease_priority(vertex, old_distance, new_distance)
+    @heap.change_key(vertex_key(vertex, old_distance), vertex_key(vertex, new_distance))
+  end
+
+  private
+
+  def vertex_key(vertex, distance)
+    VertexKey.new(vertex, distance)
+  end
+
+  VertexKey = Struct.new(:vertex, :distance)
+end
+
 module Rubi
   # class Combinations
   #   def self.combinations paths, target_vertices
@@ -27,33 +49,43 @@ module Rubi
   # end
 
   class Dijkstra
+    # https://github.com/monora/rgl/blob/master/lib/rgl/dijkstra.rb
+    # http://en.wikipedia.org/wiki/Dijkstra's_algorithm
+
     def initialize graph, source, target
-      # function Dijkstra(Graph, source):
-      #     dist[source] := 0                     // Initializations
-      #     for each vertex v in Graph:           
-      #         if v ≠ source
-      #             dist[v] := infinity           // Unknown distance from source to v
-      #             prev[v] := undefined          // Predecessor of v
-      #         end if
-      #         Q.add_with_priority(v,dist[v])
-      #     end for 
+      distance = Hash.new(Float::INFINITY)
+      distance[source] = 0
+      
+      heap = MinPriorityQueue.new
+      tree = Graph.new
 
+      vertices.each do |vertex|
+        heap.push vertex, distance[vertex]
+      end
 
-      #     while Q is not empty:                 // The main loop
-      #         u := Q.extract_min()              // Remove and return best vertex
-      #         mark u as scanned
-      #         for each neighbor v of u:
-      #             if v is not yet scanned:
-      #                 alt = dist[u] + length(u, v) 
-      #                 if alt < dist[v]
-      #                     dist[v] := alt
-      #                     prev[v] := u
-      #                     Q.decrease_priority(v,alt)
-      #                 end if
-      #             end if
-      #         end for
-      #     end while
-      #     return prev[]
+      scanned = Hash.new(false)
+
+      until queue.empty?
+        u = queue.pop
+        scanned[u] = true
+
+        graph.adjacent_vertices(u).each do |v|
+          unless scanned[v]
+            new_distance = distance[u] + 1 # length(u, v)
+
+            if new_distance <= distance[v]
+              if new_distance < distance[v]
+                heap.decrease_priority v, distance[v], new_distance
+                distance[v] = new_distance
+              end
+
+              tree.add_edge DirectedEdge u, v
+            end
+          end
+        end
+      end
+
+      return tree
     end
   end # Dijkstra
 
@@ -62,4 +94,5 @@ module Rubi
       Dijkstra.new self, source, target
     end
   end # Graph
+
 end # Rubi

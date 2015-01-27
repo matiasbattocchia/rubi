@@ -13,7 +13,16 @@ module Rubi
     # end
   end
 
-  class DirectedEdge < Edge; end
+  class DirectedEdge < Edge
+    def head
+      @endpoints.last
+    end
+
+    def tail
+      @endpoints.first
+    end
+  end
+
   class UndirectedEdge < Edge; end
   class LoopEdge < Edge; end
   class Property; end
@@ -49,6 +58,10 @@ module Rubi
 
     def add_edges *edges
       edges.each { |edge| add_edge edge }
+    end
+
+    def adjacent_vertices vertex
+      @incidence_list[vertex].map(&:endpoints).uniq.select { |adjacent_vertex| adjacent_vertex != vertex }
     end
   end
 end
