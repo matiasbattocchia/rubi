@@ -8,9 +8,16 @@ module Rubi
       @endpoints = [one_endpoint, another_endpoint]
     end
 
-    # def <=> another_edge
-    #   object_id <=> another_edge.object_id
-    # end
+    def eql? other
+      self.endpoints == other.endpoints
+    end
+
+    alias == eql?
+
+    def hash
+      self.endpoints.hash
+    end
+
   end
 
   class DirectedEdge < Edge
@@ -48,20 +55,36 @@ module Rubi
   end
 
   class Graph
-    def initialize
-      @incidence_list = Hash.new { |hash, key| hash[key] = Set.new }
-    end
 
-    def add_edge edge
-      edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
+    def initialize *edges
+      @incidence_list = Hash.new { |hash, key| hash[key] = Set.new }
+      
+      add_edges *edges
     end
 
     def add_edges *edges
       edges.each { |edge| add_edge edge }
     end
 
-    def adjacent_vertices vertex
-      @incidence_list[vertex].map(&:endpoints).uniq.select { |adjacent_vertex| adjacent_vertex != vertex }
+    def vertices
+      @incidence_list.keys
     end
+
+    def adjacent_vertices vertex
+      @incidence_list[vertex].map(&:endpoints).flatten.uniq.select { |adjacent_vertex| adjacent_vertex != vertex }
+    end
+    
+    def eql? other
+      @incidence_list == other.instance_variable_get(:@incidence_list)
+    end
+
+    alias == eql?
+
+    private
+
+    def add_edge edge
+      edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
+    end
+
   end
 end

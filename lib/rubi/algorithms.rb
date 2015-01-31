@@ -5,21 +5,21 @@ class MinPriorityQueue < Containers::Heap
     super { |a, b| a.distance < b.distance }
   end
 
-  def push(vertex, distance)
-    @heap.push(vertex_key(vertex, distance), vertex)
+  def push vertex, distance
+    super vertex_key(vertex, distance), vertex
   end
 
-  def decrease_priority(vertex, old_distance, new_distance)
-    @heap.change_key(vertex_key(vertex, old_distance), vertex_key(vertex, new_distance))
+  def decrease_priority vertex, old_distance, new_distance
+    change_key vertex_key(vertex, old_distance), vertex_key(vertex, new_distance)
   end
 
   private
 
-  def vertex_key(vertex, distance)
-    VertexKey.new(vertex, distance)
+  def vertex_key vertex, distance
+    VertexKey.new vertex, distance
   end
 
-  VertexKey = Struct.new(:vertex, :distance)
+  VertexKey = Struct.new :vertex, :distance
 end
 
 module Rubi
@@ -52,21 +52,21 @@ module Rubi
     # https://github.com/monora/rgl/blob/master/lib/rgl/dijkstra.rb
     # http://en.wikipedia.org/wiki/Dijkstra's_algorithm
 
-    def initialize graph, source, target
+    def self.solve graph, source
       distance = Hash.new(Float::INFINITY)
       distance[source] = 0
       
       heap = MinPriorityQueue.new
-      tree = Graph.new
+      shortest_path_graph = Graph.new
 
-      vertices.each do |vertex|
+      graph.vertices.each do |vertex|
         heap.push vertex, distance[vertex]
       end
 
       scanned = Hash.new(false)
 
-      until queue.empty?
-        u = queue.pop
+      until heap.empty?
+        u = heap.pop
         scanned[u] = true
 
         graph.adjacent_vertices(u).each do |v|
@@ -79,19 +79,19 @@ module Rubi
                 distance[v] = new_distance
               end
 
-              tree.add_edge DirectedEdge u, v
+              shortest_path_graph.add_edges DirectedEdge.new(u, v)
             end
           end
         end
       end
 
-      return tree
+      return shortest_path_graph
     end
   end # Dijkstra
 
   class Graph
     def shortest_paths source, target
-      Dijkstra.new self, source, target
+      Dijkstra.solve self, source
     end
   end # Graph
 
