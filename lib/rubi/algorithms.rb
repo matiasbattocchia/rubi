@@ -86,7 +86,34 @@ module Rubi
       end
 
       return shortest_path_graph
-    end
+    end # ::solve
+
+    def self.shortest_paths shortest_path_graph, source, target
+      stack = Array.new
+      shortest_paths = Array.new
+
+      shortest_path_graph.outgoing_edges(source).each do |edge|
+        stack.push [edge]
+      end
+
+      until stack.empty?
+        path = stack.pop
+
+        if path.last.head == target
+          shortest_paths << path
+        else
+          shortest_path_graph.outgoing_edges(path.last.head).each do |edge|
+            stack.push(path.dup << edge)
+          end
+        end
+      end
+
+      shortest_paths.map! do |path|
+        Path.new *path.map!(&:to_undirected_edge)
+      end
+
+      return shortest_paths
+    end # ::shortest_paths
   end # Dijkstra
 
   class Graph

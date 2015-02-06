@@ -16,16 +16,27 @@ describe Dijkstra do
                          UndirectedEdge.new(:d, :f)
   end
 
+  def shortest_path_graph
+    @shortest_path_graph ||= Graph.new DirectedEdge.new(:a, :b),
+                                       DirectedEdge.new(:a, :c),
+                                       DirectedEdge.new(:b, :d),
+                                       DirectedEdge.new(:b, :e),
+                                       DirectedEdge.new(:b, :f),
+                                       DirectedEdge.new(:c, :d)
+  end
+
   describe '::solve' do
     it 'returns a shortest path graph for source' do
-      shortest_path_graph = Graph.new DirectedEdge.new(:a, :b),
-                                      DirectedEdge.new(:a, :c),
-                                      DirectedEdge.new(:b, :d),
-                                      DirectedEdge.new(:b, :e),
-                                      DirectedEdge.new(:b, :f),
-                                      DirectedEdge.new(:c, :d)
-
       Dijkstra.solve(graph, :a).must_equal shortest_path_graph
+    end
+  end
+
+  describe '::build_paths' do
+    it 'returns shortest paths for source and target' do
+      shortest_paths = [Path.new(UndirectedEdge.new(:a, :c), UndirectedEdge.new(:c, :d)),
+                        Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d))]
+
+      Dijkstra.shortest_paths(shortest_path_graph, :a, :d).must_equal shortest_paths
     end
   end
 end
