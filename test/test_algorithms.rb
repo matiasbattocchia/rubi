@@ -2,20 +2,21 @@ require 'minitest/autorun'
 require 'rubi/graph'
 require 'rubi/algorithms'
 require 'pry'
+
 include Rubi
 
-describe Dijkstra do
-  def graph
-    @graph ||= Graph.new UndirectedEdge.new(:a, :b),
-                         UndirectedEdge.new(:a, :c),
-                         UndirectedEdge.new(:b, :c),
-                         UndirectedEdge.new(:b, :d),
-                         UndirectedEdge.new(:b, :e),
-                         UndirectedEdge.new(:b, :f),
-                         UndirectedEdge.new(:c, :d),
-                         UndirectedEdge.new(:d, :f)
-  end
+def graph
+  @graph ||= Graph.new UndirectedEdge.new(:a, :b),
+                        UndirectedEdge.new(:a, :c),
+                        UndirectedEdge.new(:b, :c),
+                        UndirectedEdge.new(:b, :d),
+                        UndirectedEdge.new(:b, :e),
+                        UndirectedEdge.new(:b, :f),
+                        UndirectedEdge.new(:c, :d),
+                        UndirectedEdge.new(:d, :f)
+end
 
+describe Dijkstra do
   def shortest_path_graph
     @shortest_path_graph ||= Graph.new DirectedEdge.new(:a, :b),
                                        DirectedEdge.new(:a, :c),
@@ -31,48 +32,43 @@ describe Dijkstra do
     end
   end
 
-  describe '::build_paths' do
+  describe '::shortest_paths' do
     it 'returns shortest paths for source and target' do
       shortest_paths = [Path.new(UndirectedEdge.new(:a, :c), UndirectedEdge.new(:c, :d)),
                         Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d))]
 
-      Dijkstra.shortest_paths(shortest_path_graph, :a, :d).must_equal shortest_paths
+      Dijkstra.shortest_paths(shortest_path_graph, :d).must_equal shortest_paths
     end
   end
 end
 
-# class TestCombination < Test::Unit::TestCase
+describe Matroid do
+  describe '::solve' do
+    it 'returns all the independent spanning trees involving target vertices' do
+      shortest_paths = [Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d)),
+                        Path.new(UndirectedEdge.new(:a, :c), UndirectedEdge.new(:c, :d)),
+                        Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e)),
+                        Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :f)),
+                        Path.new(UndirectedEdge.new(:e, :b), UndirectedEdge.new(:b, :f)),
+                        Path.new(UndirectedEdge.new(:d, :b), UndirectedEdge.new(:b, :e)),
+                        Path.new(UndirectedEdge.new(:d, :f))]
 
+      spanning_trees = Set.new([Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d),
+                                 UndirectedEdge.new(:b, :e), UndirectedEdge.new(:b, :f)]),
+                                Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e),
+                                 UndirectedEdge.new(:b, :f), UndirectedEdge.new(:d, :f)]),
+                                Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e),
+                                 UndirectedEdge.new(:b, :d), UndirectedEdge.new(:d, :f)])])
 
+      Matroid.solve(shortest_paths, [:a, :d, :e, :f]).must_equal spanning_trees
+    end
+  end
+end
 
-#   #   @target_vertices = [@a, @d, @e, @f]
-
-#   #   @paths = [Path.new(@ab, @be), Path.new(@ab, @bf), Path.new(@ab, @bd), Path.new(@ac, @cd),
-#   #             Path.new(@be, @bf), Path.new(@bd, @be), Path.new(@df)]
-#   # end
-
-#   # def test_vertex
-#   #   assert_equal [@ab, @ac], @vertices.first.edges
-#   # end
-
-#   def test_minimum_paths
-#     assert_equal [Path.new(@ab, @bd), Path.new(@ac, @cd)], Graph.minimum_paths(@edges, @a, @d)
-#   end
-
-#   # def test_all_minimum_paths
-#   #   assert_equal @paths, Graph.all_minimum_paths(@edges, @target_vertices)
-#   # end
-
-#   # def test_path_length
-#   #   assert_equal 2, @paths.first.length
-#   # end
-  
-#   # def test_path_endpoints
-#   #   assert_equal [@a, @e].sort, @paths.first.endpoints
-#   # end
-
-#   # def test_combinations
-#   #   assert_equal [[@ab, @bd, @be, @bf], [@ab, @be, @bf, @df], [@ab, @be, @bd, @df]].map(&:sort).sort, Graph.combinations(@paths, @target_vertices)
-#   # end
-# end
-
+describe Graph do
+  describe '#spanning_trees' do
+    it 'returns spanning trees' do
+      graph.spanning_trees(:a, :d, :e, :f).must_equal '?'
+    end
+  end
+end

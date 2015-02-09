@@ -55,13 +55,13 @@ module Rubi
     def initialize *edges
       @edges = edges
 
-      # hash = Hash.new(0)
+      hash = Hash.new(0)
 
-      # @edges.map(&:endpoints).flatten.each { |vertex|
-      #   hash[vertex] += 1
-      # }
+      @edges.map(&:endpoints).flatten.each { |vertex|
+        hash[vertex] += 1
+      }
 
-      # @endpoints = hash.select { |k,v| v == 1 }.keys.sort
+      @endpoints = hash.select { |k,v| v == 1 }.keys.sort
     end
 
     # def last
@@ -116,9 +116,9 @@ module Rubi
       @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
     end
     
-    # def incoming_edges vertex
-    #   @incidence_list[vertex].select { |v| v.is_a? DirectedEdge and v.head.eql? vertex }
-    # end
+    def incoming_edges vertex
+      @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
+    end
 
     def eql? other
       @incidence_list.eql? other.instance_variable_get(:@incidence_list)
