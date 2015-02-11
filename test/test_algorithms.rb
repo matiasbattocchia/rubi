@@ -1,19 +1,27 @@
 require 'minitest/autorun'
 require 'rubi/graph'
 require 'rubi/algorithms'
-require 'pry'
 
 include Rubi
 
 def graph
   @graph ||= Graph.new UndirectedEdge.new(:a, :b),
-                        UndirectedEdge.new(:a, :c),
-                        UndirectedEdge.new(:b, :c),
-                        UndirectedEdge.new(:b, :d),
-                        UndirectedEdge.new(:b, :e),
-                        UndirectedEdge.new(:b, :f),
-                        UndirectedEdge.new(:c, :d),
-                        UndirectedEdge.new(:d, :f)
+                       UndirectedEdge.new(:a, :c),
+                       UndirectedEdge.new(:b, :c),
+                       UndirectedEdge.new(:b, :d),
+                       UndirectedEdge.new(:b, :e),
+                       UndirectedEdge.new(:b, :f),
+                       UndirectedEdge.new(:c, :d),
+                       UndirectedEdge.new(:d, :f)
+end
+
+def spanning_trees
+  @spanning_trees ||= Set.new [Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d),
+                                 UndirectedEdge.new(:b, :e), UndirectedEdge.new(:b, :f)]),
+                               Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e),
+                                 UndirectedEdge.new(:b, :f), UndirectedEdge.new(:d, :f)]),
+                               Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e),
+                                 UndirectedEdge.new(:b, :d), UndirectedEdge.new(:d, :f)])]
 end
 
 describe Dijkstra do
@@ -53,13 +61,6 @@ describe Matroid do
                         Path.new(UndirectedEdge.new(:d, :b), UndirectedEdge.new(:b, :e)),
                         Path.new(UndirectedEdge.new(:d, :f))]
 
-      spanning_trees = Set.new([Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d),
-                                 UndirectedEdge.new(:b, :e), UndirectedEdge.new(:b, :f)]),
-                                Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e),
-                                 UndirectedEdge.new(:b, :f), UndirectedEdge.new(:d, :f)]),
-                                Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :e),
-                                 UndirectedEdge.new(:b, :d), UndirectedEdge.new(:d, :f)])])
-
       Matroid.solve(shortest_paths, [:a, :d, :e, :f]).must_equal spanning_trees
     end
   end
@@ -68,7 +69,7 @@ end
 describe Graph do
   describe '#spanning_trees' do
     it 'returns spanning trees' do
-      graph.spanning_trees(:a, :d, :e, :f).must_equal '?'
+      graph.spanning_trees(:a, :d, :e, :f).must_equal spanning_trees
     end
   end
 end

@@ -142,7 +142,7 @@ module Rubi
 
       shortest_path_graphs.each_with_index do |graph, index|
         target_vertices.slice((index + 1)..-1).each do |vertex|
-          shortest_paths << Dijkstra.shortest_paths(graph, vertex)
+          shortest_paths.concat Dijkstra.shortest_paths(graph, vertex)
         end
       end
 
