@@ -27,12 +27,32 @@ require 'sequel'
 require './graph'
 
 module Rubi
+  class Relationship < DirectedEdge
+    attr_reader :referencing_column, :referenced_column
+    
+    def initialize referencing_schema, referencing_table, referencing_column,
+                   referenced_schema,  referenced_table,  referenced_column
+
+      super(referencing_schema + '.' + referencing_table,
+            referenced_schema  + '.' + referenced_table)
+
+      @referencing_column = referencing_column
+      @referenced_column = referenced_column
+    end
+
+    alias referencing_table tail
+    alias referenced_table  head
+  end
+  
   DB = Sequel.postgres(host: 'localhost', user: 'matias', database: 'warehouse')
 
   query = "SELECT
-             tc.constraint_name, tc.table_name, kcu.column_name,
-             ccu.table_name AS foreign_table_name,
-             ccu.column_name AS foreign_column_name 
+             kcu.table_schema AS referencing_schema,
+             kcu.table_name AS referencing_table,
+             kcu.column_name AS referencing_column,
+             ccu.table_schema AS referenced_schema,
+             ccu.table_name AS referenced_table,
+             ccu.column_name AS referenced_column
            FROM 
              information_schema.table_constraints AS tc
              JOIN information_schema.key_column_usage AS kcu
@@ -43,21 +63,7 @@ module Rubi
 
   graph = Graph.new
   
-  class Relationship < DirectedEdge
-
-    def initialize referencing_table, referenced_table
-      super referencing_table, referenced_table
-    end
-
-    alias referencing_table tail
-    alias referenced_table  head
-
-  end
-
-
   DB.fetch query do |row|
+    graph.add_edges Relationship.new(*row.values)
   end
-  
-  # "#{row[:table_name]} JOIN #{row[:foreign_table_name]} ON
-  #  #{row[:table_name]}.#{row[:column_name]} = #{row[:foreign_table_name]}.#{row[:foreign_column_name]}"
 end

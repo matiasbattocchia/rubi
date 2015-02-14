@@ -64,34 +64,39 @@ module Rubi
     # https://github.com/monora/rgl/blob/master/lib/rgl/dijkstra.rb
     # http://en.wikipedia.org/wiki/Dijkstra's_algorithm
 
-    def self.solve graph, source
+    def self.solve graph, source_vertex
       distance = Hash.new(Float::INFINITY)
-      distance[source] = 0
+      distance[source_vertex] = 0
       
       heap = MinPriorityQueue.new
-      shortest_path_graph = Graph.new
 
       graph.vertices.each do |vertex|
         heap.push vertex, distance[vertex]
       end
 
       scanned = Hash.new(false)
+      shortest_path_graph = ShortestPathGraph.new source_vertex
 
       until heap.empty?
-        u = heap.pop
-        scanned[u] = true
+        vertex = heap.pop
 
-        graph.adjacent_vertices(u).each do |v|
-          unless scanned[v]
-            new_distance = distance[u] + 1 # length(u, v)
+        graph.incident_edges(vertex).each do |edge|
+          unless scanned[edge]
+            scanned[edge] = true
+            
+            new_distance = distance[vertex] + edge.weight
 
-            if new_distance <= distance[v]
-              if new_distance < distance[v]
-                heap.decrease_priority v, distance[v], new_distance
-                distance[v] = new_distance
+            neighbour_vertex = edge.adjacent_vertex_of vertex
+
+            if new_distance <= distance[neighbour_vertex]
+              if new_distance < distance[neighbour_vertex]
+                
+                heap.decrease_priority neighbour_vertex, distance[neighbour_vertex], new_distance
+                
+                distance[neighbour_vertex] = new_distance
               end
 
-              shortest_path_graph.add_edges DirectedEdge.new(u, v)
+              shortest_path_graph.add_edges edge
             end
           end
         end
@@ -100,32 +105,28 @@ module Rubi
       return shortest_path_graph
     end # ::solve
 
-    def self.shortest_paths shortest_path_graph, target
+    def self.shortest_paths shortest_path_graph, target_vertex
       stack = Array.new
       shortest_paths = Array.new
 
-      source = shortest_path_graph.vertices.select do |vertex|
-        shortest_path_graph.incoming_edges(vertex).empty?
-      end.first
-
-      shortest_path_graph.outgoing_edges(source).each do |edge|
+      shortest_path_graph.incident_edges(shortest_path_graph.source_vertex).each do |edge|
         stack.push [edge]
       end
 
       until stack.empty?
         path = stack.pop
 
-        if path.last.head == target
+        if path.last.endpoints.include? target_vertex
           shortest_paths << path
         else
-          shortest_path_graph.outgoing_edges(path.last.head).each do |edge|
+          shortest_path_graph.incident_edges(path.last.head).each do |edge|
             stack.push(path.dup << edge)
           end
         end
       end
 
       shortest_paths.map! do |path|
-        Path.new *path.map!(&:to_undirected_edge)
+        Path.new *path
       end
 
       return shortest_paths

@@ -26,12 +26,12 @@ end
 
 describe Dijkstra do
   def shortest_path_graph
-    @shortest_path_graph ||= Graph.new DirectedEdge.new(:a, :b),
-                                       DirectedEdge.new(:a, :c),
-                                       DirectedEdge.new(:b, :d),
-                                       DirectedEdge.new(:b, :e),
-                                       DirectedEdge.new(:b, :f),
-                                       DirectedEdge.new(:c, :d)
+    @shortest_path_graph ||= Graph.new UndirectedEdge.new(:a, :b),
+                                       UndirectedEdge.new(:a, :c),
+                                       UndirectedEdge.new(:b, :d),
+                                       UndirectedEdge.new(:b, :e),
+                                       UndirectedEdge.new(:b, :f),
+                                       UndirectedEdge.new(:c, :d)
   end
 
   describe '::solve' do

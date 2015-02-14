@@ -2,10 +2,11 @@ require 'set'
 
 module Rubi
   module Edge
-    attr_reader :endpoints
+    attr_reader :endpoints, :weight
     
-    def initialize one_endpoint, another_endpoint
+    def initialize one_endpoint, another_endpoint, weight = 1
       @endpoints = [one_endpoint, another_endpoint]
+      @weight = weight
     end
 
     def eql? other
@@ -13,6 +14,14 @@ module Rubi
     end
 
     alias == eql?
+
+    def adjacent_vertex_of vertex
+      # To check that 'vertex' belongs to the edge could save some time
+      # to someone someday.
+      @endpoints.each do |endpoint|
+        return endpoint unless endpoint.eql? vertex
+      end
+    end
   end
 
   class DirectedEdge
@@ -30,9 +39,9 @@ module Rubi
       @endpoints.first
     end
 
-    def to_undirected_edge
-      UndirectedEdge.new *@endpoints
-    end
+    # def to_undirected_edge
+    #   UndirectedEdge.new *@endpoints
+    # end
   end
 
   class UndirectedEdge
@@ -108,17 +117,21 @@ module Rubi
       @incidence_list.keys
     end
 
-    def adjacent_vertices vertex
-      @incidence_list[vertex].map(&:endpoints).flatten.uniq.reject! { |v| v == vertex }
+    def incident_edges vertex
+      @incidence_list[vertex]
     end
 
-    def outgoing_edges vertex
-      @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
-    end
+    # def adjacent_vertices vertex
+    #   @incidence_list[vertex].map(&:endpoints).flatten.uniq.reject! { |v| v == vertex }
+    # end
+
+    # def outgoing_edges vertex
+    #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
+    # end
     
-    def incoming_edges vertex
-      @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
-    end
+    # def incoming_edges vertex
+    #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
+    # end
 
     def eql? other
       @incidence_list.eql? other.instance_variable_get(:@incidence_list)
@@ -131,5 +144,14 @@ module Rubi
     def add_edge edge
       edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
     end
-  end
-end
+  end # Graph
+
+  class ShortestPathGraph < Graph
+    attr_reader :source_vertex
+
+    def initialize *edges, source_vertex
+      super *edges
+      @source_vertex = source_vertex
+    end
+  end # ShortestPathGraph
+end # Rubi
