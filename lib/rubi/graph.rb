@@ -15,13 +15,13 @@ module Rubi
 
     alias == eql?
 
-    def adjacent_vertex_of vertex
-      # To check that 'vertex' belongs to the edge could save some time
-      # to someone someday.
-      @endpoints.each do |endpoint|
-        return endpoint unless endpoint.eql? vertex
-      end
-    end
+    # def adjacent_vertex_of vertex
+    #   # To check that 'vertex' belongs to the edge could save some time
+    #   # to someone someday.
+    #   @endpoints.each do |endpoint|
+    #     return endpoint unless endpoint.eql? vertex
+    #   end
+    # end
   end
 
   class DirectedEdge
@@ -117,13 +117,17 @@ module Rubi
       @incidence_list.keys
     end
 
-    def incident_edges vertex
-      @incidence_list[vertex]
+    def incident_edges vertex, adjacent_vertex = nil
+      if adjacent_vertex
+        @incidence_list[vertex].select { |edge| edge.endpoints.include? adjacent_vertex }
+      else
+        @incidence_list[vertex]
+      end
     end
 
-    # def adjacent_vertices vertex
-    #   @incidence_list[vertex].map(&:endpoints).flatten.uniq.reject! { |v| v == vertex }
-    # end
+    def adjacent_vertices vertex
+      @incidence_list[vertex].map(&:endpoints).flatten.uniq.reject { |v| v == vertex }
+    end
 
     # def outgoing_edges vertex
     #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }

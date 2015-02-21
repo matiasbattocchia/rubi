@@ -14,6 +14,15 @@ def graph
                        UndirectedEdge.new(:c, :d),
                        UndirectedEdge.new(:d, :f)
 end
+  
+def shortest_path_graph
+  @shortest_path_graph ||= Graph.new UndirectedEdge.new(:a, :b),
+                                     UndirectedEdge.new(:a, :c),
+                                     UndirectedEdge.new(:b, :d),
+                                     UndirectedEdge.new(:b, :e),
+                                     UndirectedEdge.new(:b, :f),
+                                     UndirectedEdge.new(:c, :d)
+end
 
 def spanning_trees
   @spanning_trees ||= Set.new [Set.new([UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d),
@@ -25,14 +34,6 @@ def spanning_trees
 end
 
 describe Dijkstra do
-  def shortest_path_graph
-    @shortest_path_graph ||= Graph.new UndirectedEdge.new(:a, :b),
-                                       UndirectedEdge.new(:a, :c),
-                                       UndirectedEdge.new(:b, :d),
-                                       UndirectedEdge.new(:b, :e),
-                                       UndirectedEdge.new(:b, :f),
-                                       UndirectedEdge.new(:c, :d)
-  end
 
   describe '::solve' do
     it 'returns a shortest path graph for source' do

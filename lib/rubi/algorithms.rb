@@ -30,7 +30,7 @@ end # MinPriorityQueue
 module Rubi
   class Matroid
     def self.solve path_ground_set, target_vertices
-      weight = Float::INFINITY
+      minimum_weight = Float::INFINITY
       independent_sets = Set.new
       target_vertices = Set.new target_vertices
       rank = target_vertices.length - 1
@@ -46,11 +46,11 @@ module Rubi
       
           edge_set = path_combination.map(&:edges).inject(Set.new) { |p, q| p.union q }
 
-          if edge_set.size == weight
-            independent_sets << edge_set
-          elsif edge_set.size < weight
-            weight = edge_set.size
+          if edge_set.size < minimum_weight
+            minimum_weight = edge_set.size
             independent_sets.clear << edge_set
+          elsif edge_set.size == minimum_weight
+            independent_sets << edge_set
           end
 
         end # if
@@ -63,6 +63,9 @@ module Rubi
   class Dijkstra
     # https://github.com/monora/rgl/blob/master/lib/rgl/dijkstra.rb
     # http://en.wikipedia.org/wiki/Dijkstra's_algorithm
+    #
+    # The current implementation modifies the original algorithm
+    # to support parallel edges and to return every shortest path possible.
 
     def self.solve graph, source_vertex
       distance = Hash.new(Float::INFINITY)
@@ -74,35 +77,42 @@ module Rubi
         heap.push vertex, distance[vertex]
       end
 
-      scanned = Hash.new(false)
-      shortest_path_graph = ShortestPathGraph.new source_vertex
+      scanned = Hash.new
+      shortest_path_graph = Array.new
 
       until heap.empty?
         vertex = heap.pop
+        scanned[vertex] = true
 
-        graph.incident_edges(vertex).each do |edge|
-          unless scanned[edge]
-            scanned[edge] = true
-            
-            new_distance = distance[vertex] + edge.weight
+        graph.adjacent_vertices(vertex).each do |neighbour_vertex|
+          unless scanned[neighbour_vertex]
+            edges = Array.new
+            minimum_weight = Float::INFINITY
 
-            neighbour_vertex = edge.adjacent_vertex_of vertex
-
-            if new_distance <= distance[neighbour_vertex]
-              if new_distance < distance[neighbour_vertex]
-                
-                heap.decrease_priority neighbour_vertex, distance[neighbour_vertex], new_distance
-                
-                distance[neighbour_vertex] = new_distance
+            graph.incident_edges(vertex, neighbour_vertex).each do |edge|
+              if edge.weight < minimum_weight
+                minimum_weight = edge.weight
+                edges.clear << edge
+              elsif edge.weight == minimum_weight
+                edges << edge
               end
-
-              shortest_path_graph.add_edges edge
             end
-          end
-        end
-      end
 
-      return shortest_path_graph
+            new_distance = distance[vertex] + minimum_weight
+
+            if new_distance < distance[neighbour_vertex]
+              heap.decrease_priority neighbour_vertex, distance[neighbour_vertex], new_distance
+              distance[neighbour_vertex] = new_distance
+
+              shortest_path_graph.concat edges
+            elsif new_distance == distance[neighbour_vertex]
+              shortest_path_graph.concat edges
+            end
+          end # unless scanned[vertex]
+        end # graph.adjacent_vertices
+      end # until heap.empty?
+
+      return ShortestPathGraph.new *shortest_path_graph, source_vertex
     end # ::solve
 
     def self.shortest_paths shortest_path_graph, target_vertex
