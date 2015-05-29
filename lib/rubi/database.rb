@@ -7,11 +7,11 @@
 #   constraint_column_usage
 #
 # SELECT
-#   tc.constraint_name, tc.table_name, kcu.column_name, 
+#   tc.constraint_name, tc.table_name, kcu.column_name,
 #   ccu.table_name AS foreign_table_name,
-#   ccu.column_name AS foreign_column_name 
-# FROM 
-#   information_schema.table_constraints AS tc 
+#   ccu.column_name AS foreign_column_name
+# FROM
+#   information_schema.table_constraints AS tc
 #   JOIN information_schema.key_column_usage AS kcu
 #     ON tc.constraint_name = kcu.constraint_name
 #   JOIN information_schema.constraint_column_usage AS ccu
@@ -21,7 +21,7 @@
 # Source:
 # http://stackoverflow.com/questions/1152260/postgres-sql-to-list-table-foreign-keys
 #
-# Note the the query will not work if composite keys are present in the schema.
+# Note the query will not work if composite keys are present in the schema.
 
 require 'sequel'
 require './graph'
@@ -29,7 +29,7 @@ require './graph'
 module Rubi
   class Relationship < DirectedEdge
     attr_reader :referencing_column, :referenced_column
-    
+
     def initialize referencing_schema, referencing_table, referencing_column,
                    referenced_schema,  referenced_table,  referenced_column
 
@@ -43,7 +43,7 @@ module Rubi
     alias referencing_table tail
     alias referenced_table  head
   end
-  
+
   DB = Sequel.postgres(host: 'localhost', user: 'matias', database: 'warehouse')
 
   query = "SELECT
@@ -53,7 +53,7 @@ module Rubi
              ccu.table_schema AS referenced_schema,
              ccu.table_name AS referenced_table,
              ccu.column_name AS referenced_column
-           FROM 
+           FROM
              information_schema.table_constraints AS tc
              JOIN information_schema.key_column_usage AS kcu
                USING (constraint_schema, constraint_name)
@@ -62,7 +62,7 @@ module Rubi
            WHERE constraint_type = 'FOREIGN KEY'"
 
   graph = Graph.new
-  
+
   DB.fetch query do |row|
     graph.add_edges Relationship.new(*row.values)
   end

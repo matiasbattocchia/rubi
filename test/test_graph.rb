@@ -1,6 +1,5 @@
 require 'minitest/autorun'
 require 'rubi/graph'
-require 'pry'
 
 include Rubi
 
@@ -11,8 +10,8 @@ describe Graph do
 
   describe '#eql?' do
     it 'is equal' do
-      same_graph = Graph.new DirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :c)
-      
+      same_graph = Graph.new UndirectedEdge.new(:b, :c), DirectedEdge.new(:a, :b)
+
       graph.must_equal same_graph
     end
 

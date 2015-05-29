@@ -4,19 +4,19 @@ GEM
     algorithms (0.5.0)
     coderay (1.1.0)
     method_source (0.8.2)
+    pg (0.18.2)
     pry (0.10.1)
       coderay (~> 1.1.0)
       method_source (~> 0.8.1)
       slop (~> 3.4)
-    rgl (0.5.0)
-      algorithms (~> 0.5.0)
-      stream (~> 0.5.0)
+    sequel (4.22.0)
     slop (3.6.0)
-    stream (0.5)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  algorithms
+  pg
   pry
-  rgl
+  sequel

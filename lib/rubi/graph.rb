@@ -3,32 +3,33 @@ require 'set'
 module Rubi
   module Edge
     attr_reader :endpoints, :weight
-    
+
     def initialize one_endpoint, another_endpoint, weight = 1
       @endpoints = [one_endpoint, another_endpoint]
       @weight = weight
     end
 
     def eql? other
+      # Subclasses must implement hash for #eql? to make sense.
       hash.eql? other.hash
     end
 
     alias == eql?
 
-    # def adjacent_vertex_of vertex
-    #   # To check that 'vertex' belongs to the edge could save some time
-    #   # to someone someday.
-    #   @endpoints.each do |endpoint|
-    #     return endpoint unless endpoint.eql? vertex
-    #   end
-    # end
+    def adjacent_vertex_of vertex
+      # To check that 'vertex' belongs to the edge could save some time
+      # to someone someday.
+      @endpoints.each do |endpoint|
+        return endpoint unless endpoint.eql? vertex
+      end
+    end
   end
 
   class DirectedEdge
     include Edge
 
     def hash
-      self.class.hash ^ @endpoints.hash
+      @endpoints.hash
     end
 
     def head
@@ -46,9 +47,9 @@ module Rubi
 
   class UndirectedEdge
     include Edge
-    
+
     def hash
-      self.class.hash ^ @endpoints.first.hash ^ @endpoints.last.hash
+      @endpoints.first.hash ^ @endpoints.last.hash
     end
   end
 
@@ -59,18 +60,18 @@ module Rubi
   # class Property; end
 
   class Path
-    attr_reader :endpoints, :edges
+    include Edge
+
+    attr_reader :edges
 
     def initialize *edges
       @edges = edges
 
-      hash = Hash.new(0)
-
-      @edges.map(&:endpoints).flatten.each { |vertex|
-        hash[vertex] += 1
+      @endpoints = @edges.map(&:endpoints).inject { |result, edge|
+        (result | edge) - (result & edge)
       }
 
-      @endpoints = hash.select { |k,v| v == 1 }.keys.sort
+      @weight = @edges.inject(0) { |sum, edge| sum + edge.weight }
     end
 
     # def last
@@ -87,7 +88,7 @@ module Rubi
 
     # def push edge
     #   @edges.push edge
-      
+
     #   return self
     # end
 
@@ -95,17 +96,15 @@ module Rubi
       @edges.length
     end
 
-    def eql? other
-      @edges.eql? other.edges
+    def hash
+      @edges.hash ^ @edges.reverse.hash
     end
-
-    alias == eql?
   end
 
   class Graph
     def initialize *edges
       @incidence_list = Hash.new { |hash, key| hash[key] = Set.new }
-      
+
       add_edges *edges
     end
 
@@ -132,7 +131,7 @@ module Rubi
     # def outgoing_edges vertex
     #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
     # end
-    
+
     # def incoming_edges vertex
     #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
     # end
@@ -149,13 +148,4 @@ module Rubi
       edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
     end
   end # Graph
-
-  class ShortestPathGraph < Graph
-    attr_reader :source_vertex
-
-    def initialize *edges, source_vertex
-      super *edges
-      @source_vertex = source_vertex
-    end
-  end # ShortestPathGraph
 end # Rubi

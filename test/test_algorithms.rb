@@ -1,6 +1,7 @@
 require 'minitest/autorun'
 require 'rubi/graph'
-require 'rubi/algorithms'
+require 'rubi/shortest_path_graph'
+require 'rubi/matroid'
 
 include Rubi
 
@@ -14,7 +15,7 @@ def graph
                        UndirectedEdge.new(:c, :d),
                        UndirectedEdge.new(:d, :f)
 end
-  
+
 def shortest_path_graph
   @shortest_path_graph ||= Graph.new UndirectedEdge.new(:a, :b),
                                      UndirectedEdge.new(:a, :c),
@@ -33,20 +34,21 @@ def spanning_trees
                                  UndirectedEdge.new(:b, :d), UndirectedEdge.new(:d, :f)])]
 end
 
-describe Dijkstra do
+describe ShortestPathGraph do
 
-  describe '::solve' do
+  describe '::new' do
     it 'returns a shortest path graph for source' do
-      Dijkstra.solve(graph, :a).must_equal shortest_path_graph
+      ShortestPathGraph.new(graph, :a).must_equal shortest_path_graph
     end
   end
 
-  describe '::shortest_paths' do
+  describe '#shortest_paths' do
     it 'returns shortest paths for source and target' do
-      shortest_paths = [Path.new(UndirectedEdge.new(:a, :c), UndirectedEdge.new(:c, :d)),
-                        Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d))]
+      shortest_paths = [Path.new(UndirectedEdge.new(:a, :c)                            ),
+                        Path.new(UndirectedEdge.new(:a, :b), UndirectedEdge.new(:b, :d)),
+                        Path.new(UndirectedEdge.new(:a, :c), UndirectedEdge.new(:c, :d))]
 
-      Dijkstra.shortest_paths(shortest_path_graph, :d).must_equal shortest_paths
+      ShortestPathGraph.new(graph, :a).shortest_paths(:c, :d).must_equal shortest_paths
     end
   end
 end
