@@ -1,5 +1,3 @@
-require 'set'
-
 module Rubi
   module Edge
     attr_reader :endpoints, :weight

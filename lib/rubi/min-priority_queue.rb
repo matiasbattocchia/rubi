@@ -1,5 +1,3 @@
-require 'algorithms'
-
 class MinPriorityQueue < Containers::Heap
   def initialize
     super { |a, b| a.distance < b.distance }

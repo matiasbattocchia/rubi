@@ -1,5 +1,5 @@
 require 'minitest/autorun'
-require 'rubi/graph'
+require 'rubi'
 
 include Rubi
 

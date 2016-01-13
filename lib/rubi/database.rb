@@ -23,9 +23,6 @@
 #
 # Note the query will not work if composite keys are present in the schema.
 
-require 'sequel'
-require './graph'
-
 module Rubi
   class Relationship < DirectedEdge
     attr_reader :referencing_column, :referenced_column
@@ -33,8 +30,10 @@ module Rubi
     def initialize referencing_schema, referencing_table, referencing_column,
                    referenced_schema,  referenced_table,  referenced_column
 
-      super(referencing_schema + '.' + referencing_table,
-            referenced_schema  + '.' + referenced_table)
+      # super(referencing_schema + '.' + referencing_table,
+      #       referenced_schema  + '.' + referenced_table)
+
+      super(referencing_table, referenced_table)
 
       @referencing_column = referencing_column
       @referenced_column = referenced_column
@@ -44,26 +43,49 @@ module Rubi
     alias referenced_table  head
   end
 
-  DB = Sequel.postgres(host: 'localhost', user: 'matias', database: 'warehouse')
+  class DB
+    attr_reader :graph
 
-  query = "SELECT
-             kcu.table_schema AS referencing_schema,
-             kcu.table_name AS referencing_table,
-             kcu.column_name AS referencing_column,
-             ccu.table_schema AS referenced_schema,
-             ccu.table_name AS referenced_table,
-             ccu.column_name AS referenced_column
-           FROM
-             information_schema.table_constraints AS tc
-             JOIN information_schema.key_column_usage AS kcu
-               USING (constraint_schema, constraint_name)
-             JOIN information_schema.constraint_column_usage AS ccu
-               USING (constraint_schema, constraint_name)
-           WHERE constraint_type = 'FOREIGN KEY'"
+    QUERY = "SELECT
+              kcu.table_schema AS referencing_schema,
+              kcu.table_name AS referencing_table,
+              kcu.column_name AS referencing_column,
+              ccu.table_schema AS referenced_schema,
+              ccu.table_name AS referenced_table,
+              ccu.column_name AS referenced_column
+            FROM
+              information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+              USING (constraint_schema, constraint_name)
+            JOIN information_schema.constraint_column_usage AS ccu
+              USING (constraint_schema, constraint_name)
+            WHERE constraint_type = 'FOREIGN KEY'"
 
-  graph = Graph.new
+    def initialize hash
+      @connection = Sequel.postgres(hash)
 
-  DB.fetch query do |row|
-    graph.add_edges Relationship.new(*row.values)
+      @graph = Graph.new
+
+      @connection.fetch QUERY do |row|
+        graph.add_edges Relationship.new(*row.values)
+      end
+    end
+
+    def report *tables
+      sets = @graph.spanning_trees *tables
+      if sets
+        sets.each do |set|
+
+          query = 'SELECT * FROM '
+
+          set.each do |relation|
+            query << relation.referencing_table + ' JOIN ' + relation.referenced_table +
+              ' USING ' + '(' + relation.referencing_column + ',' + relation.referenced_column + ') '
+          end
+
+          puts query
+        end
+      end
+    end
   end
 end

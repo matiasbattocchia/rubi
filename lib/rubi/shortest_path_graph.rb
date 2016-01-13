@@ -1,5 +1,3 @@
-require 'rubi/min-priority_queue'
-
 module Rubi
   class ShortestPathGraph < Graph
     attr_reader :source_vertex
@@ -32,7 +30,7 @@ module Rubi
         end
 
         incident_edges(last_endpoint).each do |edge|
-          if not scanned[edge] &&
+          if !scanned[edge] &&
             @distance[edge.adjacent_vertex_of last_endpoint] <= max_depth
 
             # There is a kind of path duplication going on here.
@@ -68,6 +66,7 @@ module Rubi
 
       until heap.empty?
         vertex = heap.pop
+
         scanned[vertex] = true
 
         graph.adjacent_vertices(vertex).each do |neighbour_vertex|
@@ -107,26 +106,6 @@ module Rubi
     def to_shortest_path_graph source_vertex
       ShortestPathGraph.new self, source_vertex
     end
-
-    def spanning_trees *target_vertices
-
-      # Make shortest paths graphs for every target vertex but the last.
-      shortest_path_graphs = target_vertices.slice(0..-2).map do |vertex|
-        to_shortest_path_graph vertex
-      end
-
-      shortest_paths = Array.new
-
-      shortest_path_graphs.each_with_index do |shortest_path_graph, index|
-        # Get shortest paths between a target vertex (as source vertex) and subsequent
-        # target vertices.
-        shortest_paths.concat(
-          shortest_path_graph.shortest_paths *target_vertices.slice( (index + 1)..-1 )
-        )
-      end
-
-      Matroid.solve shortest_paths, target_vertices
-    end # #shortest_paths
   end # Graph
 
 end # Rubi
