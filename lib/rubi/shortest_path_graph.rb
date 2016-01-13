@@ -55,17 +55,17 @@ module Rubi
       @distance = Hash.new(Float::INFINITY)
       @distance[@source_vertex] = 0
 
-      heap = MinPriorityQueue.new
+      queue = MinPriorityQueue.new
 
       graph.vertices.each do |vertex|
-        heap.push vertex, @distance[vertex]
+        queue.push vertex, @distance[vertex]
       end
 
       scanned = Hash.new
       edges = Array.new
 
-      until heap.empty?
-        vertex = heap.pop
+      until queue.empty?
+        vertex = queue.pop
 
         scanned[vertex] = true
 
@@ -86,7 +86,7 @@ module Rubi
             new_distance = @distance[vertex] + minimum_weight
 
             if new_distance < @distance[neighbour_vertex]
-              heap.decrease_priority neighbour_vertex, @distance[neighbour_vertex], new_distance
+              queue.decrease_key neighbour_vertex, new_distance
               @distance[neighbour_vertex] = new_distance
 
               edges.concat parallel_edges
@@ -95,7 +95,7 @@ module Rubi
             end
           end # unless scanned[vertex]
         end # graph.adjacent_vertices
-      end # until heap.empty?
+      end # until queue.empty?
 
       return edges
     end # #dijkstra
