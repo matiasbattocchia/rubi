@@ -11,3 +11,15 @@ TODO
 
 * Composite keys support
 * SQLite, MySQL, SQL Server support
+
+Test
+----
+
+http://linux.dell.com/dvdstore
+
+1. Download and untar
+  1. http://linux.dell.com/dvdstore/ds21.tar.gz
+  2. http://linux.dell.com/dvdstore/ds21_postgresql.tar.gz
+
+cd ds2/pgsqlds2/
+sh pgsqlds2_create_all.sh

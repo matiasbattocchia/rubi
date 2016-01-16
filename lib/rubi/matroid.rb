@@ -38,7 +38,7 @@ module Rubi
     def spanning_trees *target_vertices
 
       # Make shortest paths graphs for every target vertex but the last.
-      shortest_path_graphs = target_vertices.slice(0..-2).map do |vertex|
+      shortest_path_graphs = target_vertices.slice(0...-1).map do |vertex|
         to_shortest_path_graph vertex
       end
 
