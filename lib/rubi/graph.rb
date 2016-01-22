@@ -17,7 +17,7 @@ module Rubi
     def adjacent_vertex_of vertex
       # To check that 'vertex' belongs to the edge could save some time
       # to someone someday.
-      @endpoints.each do |endpoint|
+      endpoints.each do |endpoint|
         return endpoint unless endpoint.eql? vertex
       end
     end

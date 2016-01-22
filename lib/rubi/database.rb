@@ -83,28 +83,26 @@ module Rubi
     end
   end
 
-  class Relationship < DirectedEdge
-    attr_reader :referencing_column, :referenced_column
+  class DB
+    class Relationship < ::DirectedEdge
 
-    def initialize referencing_schema, referencing_table, referencing_column,
-                   referenced_schema,  referenced_table,  referenced_column
+      # def initialize referencing_column, referenced_column
+      #   super referencing_column, referenced_column
+      # end
 
-      # super(referencing_schema + '.' + referencing_table,
-      #       referenced_schema  + '.' + referenced_table)
+      def endpoints
+        @endpoints.map &:table
+      end
 
-      super(referencing_table, referenced_table)
+      alias referencing_column tail
+      alias referenced_column  head
 
-      @referencing_column = referencing_table + '.' + referencing_column
-      @referenced_column  = referenced_table  + '.' + referenced_column
+      def referencing_table; referencing_column.table end
+      def referenced_table;  referenced_column.table  end
     end
 
-    alias referencing_table tail
-    alias referenced_table  head
-  end
-
-  class DB
-    Table = Struct.new :schema, :name
-    Column = Struct.new :sce
+    Table = Struct.new :schema, :name, :columns
+    Column = Struct.new :table, :name, :data_type, :constraint_type
 
     include Queries::PostgreSQL
 
@@ -114,20 +112,53 @@ module Rubi
     # SQL Server is similar; MySQL lacks schemas.
 
     def initialize hash
-      @connection = Sequel.postgres(hash)
+      @connection = Sequel.postgres hash
 
       @graph = Graph.new
 
       columns = @connection.fetch(Columns).all
-      tables = columns.map { |row| {table_schema: row[:table_schema], table_name: row[:table_name]} }.uniq
+
+      #tables = @connection.fetch(Tables).all
+      tables = columns.map { |column| {table_schema: column[:table_schema], table_name: column[:table_name]} }.uniq
 
       tables.each do |table|
-        columns.select { |column| column[:table_schema] == table[:table_schema] && column[:table_name] == table[:table_name] }
-        @graph.add_vertices Table.new(*table.values)
+        new_table = Table.new *table.values, []
+
+        table_columns = columns.select { |column|
+          column[:table_schema] == table[:table_schema] && column[:table_name] == table[:table_name] }
+
+        table_columns.each do |column|
+          new_column = Column.new new_table, *column.values.slice(1..-1)
+          new_table.columns << new_column
+        end
+
+        @graph.add_vertices new_table
       end
 
-      @connection.fetch QUERY do |row|
-        @graph.add_edges Relationship.new(*row.values)
+      @connection.fetch Relationships do |relationship|
+        # referencing_schema, referencing_table, referencing_column
+        referencing_table = @graph.vertices.find { |table|
+          table.schema == relationship.referencing_schema &&
+            table.name == relationship.referencing_table
+        }
+
+        referencing_column = referencing_table.columns.find { |column|
+          column.name == relationship.referencing_column
+        }
+
+        # referenced_schema,  referenced_table,  referenced_column
+        referenced_table = @graph.vertices.find { |table|
+          table.schema == relationship.referenced_schema &&
+            table.name == relationship.referenced_table
+        }
+
+        referenced_column = referenced_table.columns.find { |column|
+          column.name == relationship.referenced_column
+        }
+
+        new_relationship = Relationship.new referencing_column, referenced_column
+
+        @graph.add_edges new_relationship
       end
     end
 
@@ -141,24 +172,24 @@ module Rubi
 
         query = 'SELECT ' + tables.map { |table| table + '.*' }.join(', ') + ' FROM '
 
-        set.each do |relation|
+        set.each do |relationship|
            query << if joined_tables.empty?
-             joined_tables.concat relation.endpoints
+             joined_tables.concat relationship.endpoints
 
-             relation.referencing_table + "\n" +
-             'JOIN ' + relation.referenced_table +
-               ' ON ' + relation.referencing_column + ' = ' + relation.referenced_column + "\n"
+             relationship.referencing_table + "\n" +
+             'JOIN ' + relationship.referenced_table +
+               ' ON ' + relationship.referencing_column + ' = ' + relationship.referenced_column + "\n"
            else
-             if joined_tables.include? relation.referencing_table
-               joined_tables << relation.referenced_table
+             if joined_tables.include? relationship.referencing_table
+               joined_tables << relationship.referenced_table
 
-               'JOIN ' + relation.referenced_table +
-                 ' ON ' + relation.referencing_column + ' = ' + relation.referenced_column + "\n"
+               'JOIN ' + relationship.referenced_table +
+                 ' ON ' + relationship.referencing_column + ' = ' + relationship.referenced_column + "\n"
              else
-               joined_tables << relation.referencing_table
+               joined_tables << relationship.referencing_table
 
-               'JOIN ' + relation.referencing_table +
-                 ' ON ' + relation.referencing_column + ' = ' + relation.referenced_column + "\n"
+               'JOIN ' + relationship.referencing_table +
+                 ' ON ' + relationship.referencing_column + ' = ' + relationship.referenced_column + "\n"
              end
            end
         end
