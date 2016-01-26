@@ -17,7 +17,7 @@ module Rubi
     def adjacent_vertex_of vertex
       # To check that 'vertex' belongs to the edge could save some time
       # to someone someday.
-      endpoints.each do |endpoint|
+      @endpoints.each do |endpoint|
         return endpoint unless endpoint.eql? vertex
       end
     end
@@ -110,28 +110,36 @@ module Rubi
       edges.each { |edge| add_edge edge }
     end
 
+    def add_vertices *vertices
+      vertices.each { |vertex| add_vertex vertex }
+    end
+
+    # def edges
+    #   @incidence_list.values
+    # end
+
     def vertices
       @incidence_list.keys
     end
 
     def incident_edges vertex, adjacent_vertex = nil
       if adjacent_vertex
-        @incidence_list[vertex].select { |edge| edge.endpoints.include? adjacent_vertex }
+        @incidence_list.fetch(vertex).select { |edge| edge.endpoints.include? adjacent_vertex }
       else
-        @incidence_list[vertex]
+        @incidence_list.fetch(vertex)
       end
     end
 
     def adjacent_vertices vertex
-      @incidence_list[vertex].map(&:endpoints).flatten.uniq.reject { |v| v == vertex }
+      @incidence_list.fetch(vertex).map(&:endpoints).flatten.uniq.reject { |v| v == vertex }
     end
 
     # def outgoing_edges vertex
-    #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
+    #   @incidence_list.fetch(vertex).select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
     # end
 
     # def incoming_edges vertex
-    #   @incidence_list[vertex].select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
+    #   @incidence_list.fetch(vertex).select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
     # end
 
     def eql? other
@@ -144,6 +152,10 @@ module Rubi
 
     def add_edge edge
       edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
+    end
+
+    def add_vertex vertex
+      @incidence_list[vertex]
     end
   end # Graph
 end # Rubi

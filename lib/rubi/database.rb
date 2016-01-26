@@ -1,29 +1,3 @@
-# PostgreSQL
-#
-# In information_schema table schema the following tables seem useful:
-#   (tables)
-#   (columns)
-#   table_constraints
-#   key_column_usage
-#   constraint_column_usage
-#
-# SELECT
-#   tc.constraint_name, tc.table_name, kcu.column_name,
-#   ccu.table_name AS foreign_table_name,
-#   ccu.column_name AS foreign_column_name
-# FROM
-#   information_schema.table_constraints AS tc
-#   JOIN information_schema.key_column_usage AS kcu
-#     ON tc.constraint_name = kcu.constraint_name
-#   JOIN information_schema.constraint_column_usage AS ccu
-#     ON ccu.constraint_name = tc.constraint_name
-#  WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name='mytable';
-#
-# Source:
-# http://stackoverflow.com/questions/1152260/postgres-sql-to-list-table-foreign-keys
-#
-# Note the query will not work if composite keys are present in the schema.
-
 module Rubi
 
   module Queries
@@ -31,25 +5,45 @@ module Rubi
 
       Relationships =
         "SELECT
-           key_column_usage.table_schema AS referencing_schema,
-           key_column_usage.table_name AS referencing_table,
-           key_column_usage.column_name AS referencing_column,
-           constraint_column_usage.table_schema AS referenced_schema,
-           constraint_column_usage.table_name AS referenced_table,
-           constraint_column_usage.column_name AS referenced_column
-         FROM
-           information_schema.table_constraints
-         JOIN
-           information_schema.key_column_usage
-         USING
-           (constraint_schema, constraint_name)
-         JOIN
-           information_schema.constraint_column_usage
-         USING
-           (constraint_schema, constraint_name)
-         WHERE
-           constraint_column_usage.table_schema NOT IN ('information_schema', 'pg_catalog') AND
-           table_constraints.constraint_type = 'FOREIGN KEY'"
+           constraints.constraint_name,
+           referencing_schemas.nspname AS referencing_schema,
+           referencing_tables.relname  AS referencing_table,
+           referencing_columns.attname AS referencing_column,
+           referenced_schemas.nspname  AS referenced_schema,
+           referenced_tables.relname   AS referenced_table,
+           referenced_columns.attname  AS referencing_column
+         FROM (SELECT
+                 conname   AS constraint_name,
+                 conrelid  AS referencing_table_oid,
+                 unnest(conkey)  AS referencing_column_number,
+                 confrelid AS referenced_table_oid,
+                 unnest(confkey) AS referenced_column_number
+               FROM
+                 pg_catalog.pg_constraint
+               WHERE
+                 contype = 'f') constraints
+        JOIN
+          pg_catalog.pg_class referencing_tables
+          ON referencing_tables.oid = constraints.referencing_table_oid
+        JOIN
+          pg_catalog.pg_class referenced_tables
+          ON referenced_tables.oid  = constraints.referenced_table_oid
+        JOIN
+          pg_catalog.pg_namespace referencing_schemas
+          ON referencing_schemas.oid = referencing_tables.relnamespace
+        JOIN
+          pg_catalog.pg_namespace referenced_schemas
+          ON referenced_schemas.oid  = referenced_tables.relnamespace
+        JOIN
+          pg_catalog.pg_attribute referencing_columns
+          ON referencing_columns.attrelid = constraints.referencing_table_oid
+          AND referencing_columns.attnum  = constraints.referencing_column_number
+        JOIN
+          pg_catalog.pg_attribute referenced_columns
+          ON referenced_columns.attrelid = constraints.referenced_table_oid
+          AND referenced_columns.attnum  = constraints.referenced_column_number
+        WHERE
+          referencing_schemas.nspname NOT IN ('information_schema', 'pg_catalog')"
 
       Columns =
         "SELECT
@@ -71,34 +65,34 @@ module Rubi
          WHERE
            columns.table_schema NOT IN ('information_schema', 'pg_catalog')"
 
-      Tables =
-        "SELECT
-           tables.table_schema,
-           tables.table_name
-         FROM
-           information_schema.tables
-         WHERE
-           tables.table_schema NOT IN ('information_schema', 'pg_catalog')"
+      # Tables =
+      #   "SELECT
+      #      tables.table_schema,
+      #      tables.table_name
+      #    FROM
+      #      information_schema.tables
+      #    WHERE
+      #      tables.table_schema NOT IN ('information_schema', 'pg_catalog')"
 
     end
   end
 
   class DB
-    class Relationship < ::DirectedEdge
+    class Relationship < DirectedEdge
+      attr_reader :columns
 
-      # def initialize referencing_column, referenced_column
-      #   super referencing_column, referenced_column
-      # end
+      def initialize referencing_table, referenced_table
+        super referencing_table, referenced_table
 
-      def endpoints
-        @endpoints.map &:table
+        @columns = []
       end
 
-      alias referencing_column tail
-      alias referenced_column  head
+      def add_columns referencing_column, referenced_column
+        @columns << [referencing_column, referenced_column]
+      end
 
-      def referencing_table; referencing_column.table end
-      def referenced_table;  referenced_column.table  end
+      alias referencing_table tail
+      alias referenced_table  head
     end
 
     Table = Struct.new :schema, :name, :columns
@@ -117,46 +111,75 @@ module Rubi
       @graph = Graph.new
 
       columns = @connection.fetch(Columns).all
+        # table_schema,
+        # table_name,
+        # column_name,
+        # data_type,
+        # constraint_type
 
       #tables = @connection.fetch(Tables).all
       tables = columns.map { |column| {table_schema: column[:table_schema], table_name: column[:table_name]} }.uniq
 
       tables.each do |table|
-        new_table = Table.new *table.values, []
+        new_table = Table.new table[:table_schema], table[:table_name], []
 
         table_columns = columns.select { |column|
           column[:table_schema] == table[:table_schema] && column[:table_name] == table[:table_name] }
 
         table_columns.each do |column|
-          new_column = Column.new new_table, *column.values.slice(1..-1)
+          new_column = Column.new new_table, column[:column_name], column[:data_type], column[:constraint_type]
           new_table.columns << new_column
         end
 
         @graph.add_vertices new_table
       end
 
-      @connection.fetch Relationships do |relationship|
-        # referencing_schema, referencing_table, referencing_column
+      relationships = @connection.fetch(Relationships).all
+        # constraint_name,    | These three fields are
+        # referencing_schema, | sufficient to identify
+        # referencing_table,  | a relationship.
+        # referencing_column,
+        # referenced_schema,
+        # referenced_table,
+        # referencing_column
+
+      unique_relationships = relationships.map { |relationship|
+        {constraint_name: relationship[:constraint_name],
+         referencing_schema: relationship[:referencing_schema],
+         referencing_table: relationship[:referencing_table],
+         referenced_schema: relationship[:referenced_schema],
+         referenced_table: relationship[:referenced_table]} }.uniq
+
+      unique_relationships.each do |unique_relationship|
+
         referencing_table = @graph.vertices.find { |table|
-          table.schema == relationship.referencing_schema &&
-            table.name == relationship.referencing_table
+          table.schema == unique_relationship[:referencing_schema] &&
+            table.name == unique_relationship[:referencing_table]
         }
 
-        referencing_column = referencing_table.columns.find { |column|
-          column.name == relationship.referencing_column
-        }
-
-        # referenced_schema,  referenced_table,  referenced_column
         referenced_table = @graph.vertices.find { |table|
-          table.schema == relationship.referenced_schema &&
-            table.name == relationship.referenced_table
+          table.schema == unique_relationship[:referenced_schema] &&
+            table.name == unique_relationship[:referenced_table]
         }
 
-        referenced_column = referenced_table.columns.find { |column|
-          column.name == relationship.referenced_column
-        }
+        new_relationship = Relationship.new referencing_table, referenced_table
 
-        new_relationship = Relationship.new referencing_column, referenced_column
+        pairs_of_columns = relationships.select { |relationship|
+          relationship[:constraint_name]    == unique_relationship[:constraint_name] &&
+          relationship[:referencing_schema] == unique_relationship[:referencing_schema] &&
+          relationship[:referencing_table]  == unique_relationship[:referencing_table] }
+
+        pairs_of_columns.each do |pair|
+          referencing_column = referencing_table.columns.find { |column|
+            column.name == pair[:referencing_column]
+          }
+
+          referenced_column = referenced_table.columns.find { |column|
+            column.name == pair[:referenced_column]
+          }
+
+          new_relationship.add_columns referencing_column, referenced_column
+        end
 
         @graph.add_edges new_relationship
       end
