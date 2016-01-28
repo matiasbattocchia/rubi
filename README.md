@@ -9,12 +9,12 @@ Main algorithm
 TODO
 ----
 
-[x] PostgreSQL composite keys support.
-[ ] MySQL, SQL Server support.
-
-[ ] Query optimization with EXPLAIN SQL command.
-[ ] Caching.
-[ ] Remember table/column OIDs.
+- [x] PostgreSQL composite keys support.
+- [ ] MySQL, SQL Server support.
+  
+- [ ] Query optimization with EXPLAIN SQL command.
+- [ ] Caching.
+- [ ] Remember table/column OIDs.
 
 Change constraint_type strings for symbols.
 
