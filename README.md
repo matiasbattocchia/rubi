@@ -9,13 +9,13 @@ Main algorithm
 TODO
 ----
 
-[x] PostgreSQL composite keys support.
-[ ] MySQL, SQL Server support.
-[ ] Test multiple constraints between the same pair of tables.
+- [x] PostgreSQL composite keys support.
+- [ ] MySQL, SQL Server support.
+- [ ] Test multiple constraints between the same pair of tables.
 
-[ ] Query optimization with EXPLAIN SQL command.
-[ ] Caching.
-[ ] Remember table/column OIDs.
+- [ ] Query optimization with EXPLAIN SQL command.
+- [ ] Caching.
+- [ ] Remember table/column OIDs.
 
 Change constraint_type strings for symbols.
 
