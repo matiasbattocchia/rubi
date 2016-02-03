@@ -11,7 +11,7 @@ module Rubi
            referencing_columns.attname AS referencing_column,
            referenced_schemas.nspname  AS referenced_schema,
            referenced_tables.relname   AS referenced_table,
-           referenced_columns.attname  AS referencing_column
+           referenced_columns.attname  AS referenced_column
          FROM (SELECT
                  conname   AS constraint_name,
                  conrelid  AS referencing_table_oid,
@@ -77,6 +77,9 @@ module Rubi
     end
   end
 
+  class SQL
+  end
+
   class DB
     class Relationship < DirectedEdge
       attr_reader :columns
@@ -91,11 +94,34 @@ module Rubi
         @columns << [referencing_column, referenced_column]
       end
 
+      def conditions
+        @columns.map do |pair|
+          pair.map do |column|
+            column.table.fqn2 + '.' + column.name
+          end
+        end
+      end
+
       alias referencing_table tail
       alias referenced_table  head
     end
 
-    Table = Struct.new :schema, :name, :columns
+    class Table
+      attr_reader :schema, :name, :columns
+
+      def initialize schema, name, columns = []
+        @schema, @name, @columns = schema, name, columns
+      end
+
+      def fqn
+        (@schema + '__' + @name).to_sym
+      end
+
+      def fqn2
+        @schema + '.' + @name
+      end
+    end
+
     Column = Struct.new :table, :name, :data_type, :constraint_type
 
     include Queries::PostgreSQL
@@ -106,22 +132,22 @@ module Rubi
     # SQL Server is similar; MySQL lacks schemas.
 
     def initialize hash
-      @connection = Sequel.postgres hash
+      @db = Sequel.postgres hash
 
       @graph = Graph.new
 
-      columns = @connection.fetch(Columns).all
+      columns = @db.fetch(Columns).all
         # table_schema,
         # table_name,
         # column_name,
         # data_type,
         # constraint_type
 
-      #tables = @connection.fetch(Tables).all
+      #tables = @db.fetch(Tables).all
       tables = columns.map { |column| {table_schema: column[:table_schema], table_name: column[:table_name]} }.uniq
 
       tables.each do |table|
-        new_table = Table.new table[:table_schema], table[:table_name], []
+        new_table = Table.new table[:table_schema], table[:table_name]
 
         table_columns = columns.select { |column|
           column[:table_schema] == table[:table_schema] && column[:table_name] == table[:table_name] }
@@ -134,14 +160,14 @@ module Rubi
         @graph.add_vertices new_table
       end
 
-      relationships = @connection.fetch(Relationships).all
+      relationships = @db.fetch(Relationships).all
         # constraint_name,    | These three fields are
         # referencing_schema, | sufficient to identify
         # referencing_table,  | a relationship.
         # referencing_column,
         # referenced_schema,
         # referenced_table,
-        # referencing_column
+        # referenced_column
 
       unique_relationships = relationships.map { |relationship|
         {constraint_name: relationship[:constraint_name],
@@ -186,43 +212,31 @@ module Rubi
     end
 
     def report *tables
+      tables = @graph.vertices.select { |table|
+        tables.include? table.name
+      }
+
       sets = @graph.spanning_trees *tables
 
       sets.each do |set|
-
-        queries = []
-        joined_tables = []
-
-        query = 'SELECT ' + tables.map { |table| table + '.*' }.join(', ') + ' FROM '
+        joined_tables = [tables.first]
+        dataset = @db[tables.first.fqn].select_all(*tables.map(&:fqn))
 
         set.each do |relationship|
-           query << if joined_tables.empty?
-             joined_tables.concat relationship.endpoints
+          table = if joined_tables.include? relationship.referencing_table
+                    relationship.referenced_table
+                  else
+                    relationship.referencing_table
+                  end
 
-             relationship.referencing_table + "\n" +
-             'JOIN ' + relationship.referenced_table +
-               ' ON ' + relationship.referencing_column + ' = ' + relationship.referenced_column + "\n"
-           else
-             if joined_tables.include? relationship.referencing_table
-               joined_tables << relationship.referenced_table
+          joined_tables << table
 
-               'JOIN ' + relationship.referenced_table +
-                 ' ON ' + relationship.referencing_column + ' = ' + relationship.referenced_column + "\n"
-             else
-               joined_tables << relationship.referencing_table
+          dataset = dataset.join(table.fqn, relationship.conditions)
+        end # inject
 
-               'JOIN ' + relationship.referencing_table +
-                 ' ON ' + relationship.referencing_column + ' = ' + relationship.referenced_column + "\n"
-             end
-           end
-        end
+        puts dataset.sql
+      end # each
 
-        puts query
-
-        queries << query
-      end
-
-      queries
     end
   end
 end

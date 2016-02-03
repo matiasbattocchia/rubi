@@ -11,6 +11,7 @@ TODO
 
 [x] PostgreSQL composite keys support.
 [ ] MySQL, SQL Server support.
+[ ] Test multiple constraints between the same pair of tables.
 
 [ ] Query optimization with EXPLAIN SQL command.
 [ ] Caching.
