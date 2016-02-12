@@ -1,3 +1,9 @@
+# Ruby business intelligence
+
+The built-in SQL backend of the framework provides ROLAP functionality on top a relational database. Rubi contains a SQL query generator that translates the reporting queries into SQL statements. The query generator takes into account topology of the schema and executes only joins that are necessary to retrieve attributes required by the data analyst.
+
+The SQL backend uses Sequel toolkit to construct the queries.
+
 Main algorithm
 --------------
 
@@ -16,6 +22,10 @@ TODO
 - [ ] Query optimization with EXPLAIN SQL command.
 - [ ] Caching.
 - [ ] Remember table/column OIDs.
+- [ ] Auto-reload files.
+
+- [ ] Export capabilities.
+- [ ] Security; user administration.
 
 Change constraint_type strings for symbols.
 
@@ -34,3 +44,10 @@ Next goal
 ---------
 
 Report revenue by product and category.
+
+
+- Lack of environments: no development environment; must empty caches continuously.
+- Graphical interface turns useful for data analysts but not for data architects (at least to those with a developer background).
+- Impossibility of doing control versioning.
+
+

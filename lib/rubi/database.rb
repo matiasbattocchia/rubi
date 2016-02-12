@@ -233,10 +233,9 @@ module Rubi
 
           dataset = dataset.join(table.fqn, relationship.conditions)
         end # inject
-
-        puts dataset.sql
       end # each
 
+      dataset
     end
   end
 end

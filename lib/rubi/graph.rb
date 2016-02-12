@@ -1,33 +1,32 @@
 module Rubi
-  module Edge
-    attr_reader :endpoints, :weight
+  class Edge
+    attr_reader :endpoints, :properties
 
-    def initialize one_endpoint, another_endpoint, weight = 1
+    def initialize(one_endpoint, another_endpoint, properties = {})
       @endpoints = [one_endpoint, another_endpoint]
-      @weight = weight
+      @properties = properties
     end
 
-    def eql? other
-      # Subclasses must implement hash for #eql? to make sense.
-      hash.eql? other.hash
+    def hash
+      @endpoints.first.hash ^ @endpoints.last.hash ^ @properties.hash
     end
 
-    alias == eql?
+    def ==(other)
+      hash == other.hash
+    end
 
-    def adjacent_vertex_of vertex
-      # To check that 'vertex' belongs to the edge could save some time
-      # to someone someday.
+    alias eql? ==
+
+    def adjacent_vertex_of(vertex)
       @endpoints.each do |endpoint|
-        return endpoint unless endpoint.eql? vertex
+        return endpoint unless endpoint == vertex
       end
     end
   end
 
-  class DirectedEdge
-    include Edge
-
+  class DirectedEdge < Edge
     def hash
-      @endpoints.hash
+      @endpoints.hash ^ @properties.hash
     end
 
     def head
@@ -37,125 +36,78 @@ module Rubi
     def tail
       @endpoints.first
     end
-
-    # def to_undirected_edge
-    #   UndirectedEdge.new *@endpoints
-    # end
   end
 
-  class UndirectedEdge
-    include Edge
-
-    def hash
-      @endpoints.first.hash ^ @endpoints.last.hash
-    end
-  end
-
-  # class LoopEdge
-  #   include Edge
-  # end
-
-  # class Property; end
-
-  class Path
-    include Edge
-
+  class Path < Edge
     attr_reader :edges
 
-    def initialize *edges
+    def initialize(*edges)
       @edges = edges
 
-      @endpoints = @edges.map(&:endpoints).inject { |result, edge|
-        (result | edge) - (result & edge)
-      }
-
-      @weight = @edges.inject(0) { |sum, edge| sum + edge.weight }
-    end
-
-    # def last
-    #   @edges.last
-    # end
-
-    # def first
-    #   @edges.first
-    # end
-
-    # def map! &blk
-    #   @edges.map! &blk
-    # end
-
-    # def push edge
-    #   @edges.push edge
-
-    #   return self
-    # end
-
-    def length
-      @edges.length
+      @endpoints = @edges.map(&:endpoints)
+        .reduce { |result, edge| (result | edge) - (result & edge) }
     end
 
     def hash
       @edges.hash ^ @edges.reverse.hash
     end
+
+    def size
+      @edges.size
+    end
   end
 
   class Graph
-    def initialize *edges
+    attr_reader :incidence_list
+
+    def initialize(*edges)
       @incidence_list = Hash.new { |hash, key| hash[key] = Set.new }
 
-      add_edges *edges
+      add_edges(*edges)
     end
 
-    def add_edges *edges
-      edges.each { |edge| add_edge edge }
+    def add_edge(edge)
+      edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
     end
 
-    def add_vertices *vertices
-      vertices.each { |vertex| add_vertex vertex }
+    def add_edges(*edges)
+      edges.each { |edge| add_edge(edge) }
     end
 
-    # def edges
-    #   @incidence_list.values
-    # end
-
-    def vertices
-      @incidence_list.keys
+    def edges
+      @incidence_list.values
     end
 
-    def incident_edges vertex, adjacent_vertex = nil
+    def incident_edges(vertex, adjacent_vertex = nil)
       if adjacent_vertex
-        @incidence_list.fetch(vertex).select { |edge| edge.endpoints.include? adjacent_vertex }
+        @incidence_list.fetch(vertex)
+          .select { |edge| edge.endpoints.include?(adjacent_vertex) }
       else
         @incidence_list.fetch(vertex)
       end
     end
 
-    def adjacent_vertices vertex
-      @incidence_list.fetch(vertex).map(&:endpoints).flatten.uniq.reject { |v| v == vertex }
-    end
-
-    # def outgoing_edges vertex
-    #   @incidence_list.fetch(vertex).select { |edge| edge.is_a? DirectedEdge and edge.tail.eql? vertex }
-    # end
-
-    # def incoming_edges vertex
-    #   @incidence_list.fetch(vertex).select { |edge| edge.is_a? DirectedEdge and edge.head.eql? vertex }
-    # end
-
-    def eql? other
-      @incidence_list.eql? other.instance_variable_get(:@incidence_list)
-    end
-
-    alias == eql?
-
-    private
-
-    def add_edge edge
-      edge.endpoints.each { |endpoint| @incidence_list[endpoint] << edge }
-    end
-
-    def add_vertex vertex
+    def add_vertex(vertex)
       @incidence_list[vertex]
     end
-  end # Graph
-end # Rubi
+
+    def add_vertices(*vertices)
+      vertices.each { |vertex| add_vertex(vertex) }
+    end
+
+    def vertices
+      @incidence_list.keys
+    end
+
+    def adjacent_vertices(vertex)
+      @incidence_list.fetch(vertex).map(&:endpoints).flatten.uniq
+        .reject { |v| v == vertex }
+    end
+
+    def ==(other)
+      @incidence_list == other.incidence_list
+    end
+
+    alias eql? ==
+  end
+end
