@@ -129,12 +129,13 @@ module Rubi
       @db = Sequel.connect(options)
       @graph = Graph.new
 
-      case options[:adapter]
-      when 'postgres'
-        extend PostgreSQL
-      else
-        raise 'Adapter not supported.'
-      end
+      @adapter =
+        case options[:adapter]
+        when 'postgres'
+          PostgreSQL
+        else
+          raise "Adapter '#{options[:adapter]}' not supported."
+        end
 
       tables
       relationships
@@ -143,7 +144,7 @@ module Rubi
     private
 
     def tables
-      columns = @db.fetch(COLUMNS).all
+      columns = @db.fetch(@adapter::COLUMNS).all
       # table_schema,
       # table_name,
       # column_name,
@@ -169,7 +170,7 @@ module Rubi
           new_column = Column.new(new_table,
                                   column[:column_name],
                                   column[:data_type],
-                                  column[:constraint_type].downcase.to_sym)
+                                  column[:constraint_type])
 
           new_table.columns << new_column
         end
@@ -179,7 +180,7 @@ module Rubi
     end
 
     def relationships
-      relationships = @db.fetch(RELATIONSHIPS).all
+      relationships = @db.fetch(@adapter::RELATIONSHIPS).all
       # constraint_name,    | These three fields are
       # referencing_schema, | sufficient to identify
       # referencing_table,  | a relationship.
