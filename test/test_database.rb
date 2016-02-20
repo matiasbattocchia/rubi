@@ -4,14 +4,20 @@ require 'pry'
 
 include Rubi
 
-# hash = {host: 'localhost', user: 'matias', database: 'warehouse'}
+def connection
+  {adapter: 'postgres',
+   host: 'localhost',
+   database: 'ds2',
+   user: 'ds2',
+   password: ''}
+end
 
-db = DB.new(host: 'localhost', user: 'matias', database: 'warehouse')
+describe Database do
+  describe 'new' do
+    it 'picks up the topology of the given database' do
+      database = ''
 
-db.report('documentos', 'trimestres', 'coberturas')
-
-# spg = db.graph.to_shortest_path_graph('documentos')
-
-# spg.shortest_paths('trimestres')
-
-# db.graph.spanning_trees('documentos', 'trimestres')
+      Database.new(connection).must_equal(database)
+    end
+  end
+end

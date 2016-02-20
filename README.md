@@ -16,8 +16,8 @@ TODO
 ----
 
 - [x] PostgreSQL composite keys support.
-- [ ] MySQL, SQL Server support.
-- [ ] Test multiple constraints between the same pair of tables.
+- [ ] MySQL support.
+- [ ] SQL Server support.
 
 - [ ] Query optimization with EXPLAIN SQL command.
 - [ ] Caching.
@@ -26,8 +26,6 @@ TODO
 
 - [ ] Export capabilities.
 - [ ] Security; user administration.
-
-Change constraint_type strings for symbols.
 
 Test database
 -------------
@@ -39,15 +37,3 @@ http://linux.dell.com/dvdstore
   2. http://linux.dell.com/dvdstore/ds21_postgresql.tar.gz
 2. cd ds2/pgsqlds2/
 3. sh pgsqlds2_create_all.sh
-
-Next goal
----------
-
-Report revenue by product and category.
-
-
-- Lack of environments: no development environment; must empty caches continuously.
-- Graphical interface turns useful for data analysts but not for data architects (at least to those with a developer background).
-- Impossibility of doing control versioning.
-
-

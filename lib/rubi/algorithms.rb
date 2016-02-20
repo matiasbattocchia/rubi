@@ -92,19 +92,19 @@ module Rubi
         graph.incident_edges(vertex).each do |edge|
           next unless
             edge.properties[:signs] &&
-            edge.properties[:signs].fetch(target_vertex) &&
-            edge.properties[:signs].fetch(target_vertex).include?(source_vertex)
+            edge.properties[:signs].fetch(vertex, nil) &&
+            edge.properties[:signs].fetch(vertex).include?(source_vertex)
 
           if edge.adjacent_vertex_of(vertex) == source_vertex
             paths
           else
             queue
-          end << Path.new(*path.edges, edge)
+          end << Path.new(edge, *path.edges)
         end
 
         break if queue.empty?
 
-        path = queue.pop
+        path = queue.shift
         vertex = path.adjacent_vertex_of(target_vertex)
       end
 
@@ -150,24 +150,32 @@ module Rubi
       independent_sets
     end
 
-    def spanning_trees *target_vertices
+    def self.spanning_trees(graph, target_vertices)
+      source_vertices = target_vertices.clone
 
-      # Make shortest paths graphs for every target vertex but the last.
-      shortest_path_graphs = target_vertices.slice(0...-1).map do |vertex|
-        to_shortest_path_graph vertex
+      source_vertices.each do |source_vertex|
+        next if graph.incident_edges(source_vertex).find do |edge|
+               edge.properties[:signs] &&
+               edge.properties[:signs].values.flatten.include?(source_vertex)
+             end
+
+        shortest_path_tree(graph, source_vertex)
       end
 
-      shortest_paths = Array.new
+      paths = []
 
-      shortest_path_graphs.each_with_index do |shortest_path_graph, index|
-        # Get shortest paths between a target vertex (as source vertex) and subsequent
-        # target vertices.
-        shortest_paths.concat(
-          shortest_path_graph.shortest_paths *target_vertices.slice( (index + 1)..-1 )
-        )
+      source_vertices.each do |source_vertex|
+        target_vertices.delete(source_vertex)
+
+        target_vertices.each do |target_vertex|
+          paths.concat(shortest_paths(graph, source_vertex, target_vertex))
+        end
       end
 
-      Matroid.solve shortest_paths, target_vertices
-    end # #spanning_trees
-  end # Rubi
+      # This is unnecessary. It communicates better what's going on, though.
+      target_vertices = source_vertices
+
+      matroid(paths, target_vertices)
+    end
+  end
 end
