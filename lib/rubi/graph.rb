@@ -75,7 +75,7 @@ module Rubi
     end
 
     def edges
-      @incidence_list.values
+      @incidence_list.values.reduce(&:|).to_a
     end
 
     def incident_edges(vertex, adjacent_vertex = nil)

@@ -96,11 +96,16 @@ module Rubi
   end
 
   class Relationship < DirectedEdge
-    attr_reader :columns
+    attr_reader :constraint_name, :columns
 
-    def initialize(referencing_table, referenced_table)
+    def initialize(constraint_name, referencing_table, referenced_table)
       super referencing_table, referenced_table
+      @constraint_name = constraint_name
       @columns = []
+    end
+
+    def name
+      referencing_table.fqn2 + '.' + @constraint_name
     end
 
     def add_columns(referencing_column, referenced_column)
@@ -120,8 +125,6 @@ module Rubi
   end
 
   class Database
-    attr_reader :graph
-
     # PostgreSQL: Server > Database > Schema > SQL objects.
     # SQL Server is similar; MySQL lacks schemas.
 
@@ -137,13 +140,21 @@ module Rubi
           raise "Adapter '#{options[:adapter]}' not supported."
         end
 
-      tables
-      relationships
+      load_tables
+      load_relationships
+    end
+
+    def tables
+      @graph.vertices
+    end
+
+    def relationships
+      @graph.edges
     end
 
     private
 
-    def tables
+    def load_tables
       columns = @db.fetch(@adapter::COLUMNS).all
       # table_schema,
       # table_name,
@@ -169,8 +180,10 @@ module Rubi
         table_columns.each do |column|
           new_column = Column.new(new_table,
                                   column[:column_name],
-                                  column[:data_type],
-                                  column[:constraint_type])
+                                  column[:data_type].to_sym,
+                                  column[:constraint_type] &&
+                                  column[:constraint_type]
+                                  .downcase.gsub(' ', '_').to_sym)
 
           new_table.columns << new_column
         end
@@ -179,7 +192,8 @@ module Rubi
       end
     end
 
-    def relationships
+    def load_relationships
+      # binding.pry
       relationships = @db.fetch(@adapter::RELATIONSHIPS).all
       # constraint_name,    | These three fields are
       # referencing_schema, | sufficient to identify
@@ -208,8 +222,10 @@ module Rubi
             table.name == unique_relationship[:referenced_table]
         end
 
-        new_relationship = Relationship.new(referencing_table,
-                                            referenced_table)
+        new_relationship = Relationship.new(
+          unique_relationship[:constraint_name],
+          referencing_table,
+          referenced_table)
 
         pairs_of_columns = relationships.select do |relationship|
           relationship[:constraint_name]    ==
