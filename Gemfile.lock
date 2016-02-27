@@ -4,6 +4,7 @@ GEM
     coderay (1.1.0)
     lazy_priority_queue (0.1.0)
     method_source (0.8.2)
+    mysql2 (0.4.3)
     pg (0.18.2)
     pry (0.10.1)
       coderay (~> 1.1.0)
@@ -17,6 +18,7 @@ PLATFORMS
 
 DEPENDENCIES
   lazy_priority_queue
+  mysql2
   pg
   pry
   sequel

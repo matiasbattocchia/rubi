@@ -35,5 +35,7 @@ http://linux.dell.com/dvdstore
 1. Download and untar
   1. http://linux.dell.com/dvdstore/ds21.tar.gz
   2. http://linux.dell.com/dvdstore/ds21_postgresql.tar.gz
+  3. http://linux.dell.com/dvdstore/ds21_mysql.tar.gz
+  4. http://linux.dell.com/dvdstore/ds21_sqlserver.tar.gz
 2. cd ds2/pgsqlds2/
 3. sh pgsqlds2_create_all.sh
