@@ -6,8 +6,8 @@ module Rubi
       def initialize(column_table, column_name,
                      data_type, constraint_types = [])
 
-        @table = table
-        @name = name
+        @table = column_table
+        @name = column_name
         @data_type = data_type
         @constraint_types = constraint_types
       end
@@ -47,7 +47,7 @@ module Rubi
       end
 
       def full_name
-        referencing_table.full_name + '.' + @constraint_name
+        referencing_table.full_name + '.' + @name
       end
 
       def join_conditions
@@ -125,7 +125,6 @@ module Rubi
     end
 
     def load_relationships
-      # binding.pry
       relationships = @db.fetch(@adapter::RELATIONSHIPS).all
       # constraint_name,    | These three fields are
       # referencing_schema, | sufficient to identify
@@ -145,13 +144,13 @@ module Rubi
 
       unique_relationships.each do |unique_relationship|
         referencing_table = @graph.vertices.find do |table|
-          table.schema == unique_relationship[:referencing_schema] &&
-            table.name == unique_relationship[:referencing_table]
+          table.full_name == unique_relationship[:referencing_schema] +
+                       '.' + unique_relationship[:referencing_table]
         end
 
         referenced_table = @graph.vertices.find do |table|
-          table.schema == unique_relationship[:referenced_schema] &&
-            table.name == unique_relationship[:referenced_table]
+          table.full_name == unique_relationship[:referenced_schema] +
+                       '.' + unique_relationship[:referenced_table]
         end
 
         new_relationship = Relationship.new(

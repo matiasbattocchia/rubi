@@ -49,7 +49,7 @@ module Rubi
          columns.table_name,
          columns.column_name,
          min(columns.data_type) AS data_type,
-         string_agg(table_constraints.constraint_type, ',') AS constraint_types
+         string_agg(table_constraints.constraint_type, ', ') AS constraint_types
        FROM
          information_schema.columns
        LEFT JOIN

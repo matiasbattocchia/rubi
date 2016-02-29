@@ -22,6 +22,3 @@ DEPENDENCIES
   pg
   pry
   sequel
-
-BUNDLED WITH
-   1.11.2
