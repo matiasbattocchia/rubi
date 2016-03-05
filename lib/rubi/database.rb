@@ -1,68 +1,83 @@
 module Rubi
+  class Column
+    attr_reader :table, :name, :full_name, :data_type
+
+    def initialize(column_table, column_name, data_type)
+      @table = column_table
+      @name = column_name
+      @full_name = column_table.full_name + '.' + column_name
+      @data_type = data_type
+    end
+  end
+
+  class Table
+    attr_reader :name, :full_name, :sequel_name,
+                :columns, :relationships
+
+    def initialize(database_name, schema_name, table_name)
+      @name = table_name
+      @full_name = database_name + '.' + schema_name + '.' + table_name
+      @sequel_name = (schema_name + '__' + table_name).to_sym
+      @columns = columns
+      @relationships = relationships
+    end
+  end
+
+  class Relationship
+    attr_reader :name, :full_name,
+                :referencing_table, :referencing_columns,
+                :referenced_table,  :referenced_columns
+
+    def initialize(constraint_name,
+                   referencing_table, referencing_columns,
+                   referenced_table,  referenced_columns)
+
+      # if referencing_columns.size != referenced_columns.size
+      #   raise 'Quantity of referencing columns ' \
+      #         'and referenced columns mismatch.'
+      # end
+
+      # if column = referencing_columns.find? { |c| c.table != referencing_table }
+      #   raise "Column #{column.full_name} does not belong to " \
+      #         "table #{referencing_table.full_name}."
+      # end
+
+      # if column = referenced_columns.find? { |c| c.table != referenced_table }
+      #   raise "Column #{column.full_name} does not belong to " \
+      #         "table #{referenced_table.full_name}."
+      # end
+
+      # if referencing_columns.map(&:data_type) !=
+      #     referenced_columns.map(&:data_type)
+
+      #   raise 'Column data type mismatch. Order matters: ' \
+      #         'First referencing column compares its type ' \
+      #         'with the first referenced\'s and so on.'
+      # end
+
+      @name      = constraint_name
+      @full_name = referencing_table.full_name + '.' + constraint_name
+
+      @referencing_table   = referencing_table
+      @referencing_columns = referencing_columns.freeze
+      @referenced_table    = referenced_table
+      @referenced_columns  = referenced_columns.freeze
+    end
+  end
+
   class Database
-    class Column
-      attr_reader :name, :data_type, :constraint_types
-
-      def initialize(column_table, column_name,
-                     data_type, constraint_types = [])
-
-        @table = column_table
-        @name = column_name
-        @data_type = data_type
-        @constraint_types = constraint_types
-      end
-
-      def full_name
-        @table.full_name + '.' + @name
-      end
-    end
-
-    class Table
-      attr_reader :name, :columns
-
-      def initialize(table_schema, table_name, columns = [])
-        @schema = table_schema
-        @name = table_name
-        @columns = columns
-      end
-
-      def full_name
-        @schema + '.' + @name
-      end
-
-      def full_name_for_sequel
-        (@schema + '__' + @name).to_sym
-      end
-    end
-
-    class Relationship < DirectedEdge
-      attr_reader :name, :pairs_of_columns
-
-      def initialize(constraint_name, referencing_table,
-                     referenced_table, pairs_of_columns = [])
-
-        super referencing_table, referenced_table
-        @name = constraint_name
-        @pairs_of_columns = pairs_of_columns
-      end
-
-      def full_name
-        referencing_table.full_name + '.' + @name
-      end
-
-      def join_conditions
-        @pairs_of_columns.map do |pair_of_columns|
-          pair_of_columns.map(&:full_name)
-        end
-      end
-
-      alias referencing_table tail
-      alias referenced_table  head
-    end
+    # Database objects are identifyied by
+    # database.schema.table.column and
+    # database.schema.table.constraint.
+    #
+    # MySQL objects will have database and schema
+    # names duplicated, as it lacks schemas.
+    attr_reader :tables, :relationships, :connection
 
     def initialize(options)
-      @db = Sequel.connect(options)
-      @graph = Graph.new
+      @tables = []
+      @relationships = []
+      @connection = Sequel.connect(options)
 
       @adapter =
         case options[:adapter]
@@ -74,36 +89,30 @@ module Rubi
           raise "Adapter '#{options[:adapter]}' not supported."
         end
 
+      @name = options[:database]
+
       load_tables
       load_relationships
-    end
-
-    def tables
-      @graph.vertices
-    end
-
-    def relationships
-      @graph.edges
     end
 
     private
 
     def load_tables
-      columns = @db.fetch(@adapter::COLUMNS).all
+      columns = @connection.fetch(@adapter::COLUMNS).all
       # table_schema,
       # table_name,
       # column_name,
       # data_type,
-      # constraint_type
+      # constraint_types
 
-      # tables = @db.fetch(Tables).all
       tables = columns.map do |column|
         {table_schema: column[:table_schema],
          table_name:   column[:table_name]}
       end.uniq
 
       tables.each do |table|
-        new_table = Table.new(table[:table_schema],
+        new_table = Table.new(@name,
+                              table[:table_schema],
                               table[:table_name])
 
         table_columns = columns.select do |column|
@@ -114,18 +123,17 @@ module Rubi
         table_columns.each do |column|
           new_column = Column.new(new_table,
                                   column[:column_name],
-                                  column[:data_type].to_sym,
-                                  column[:constraint_types])
+                                  column[:data_type].to_sym)
 
           new_table.columns << new_column
         end
 
-        @graph.add_vertex(new_table)
+        @tables << new_table
       end
     end
 
     def load_relationships
-      relationships = @db.fetch(@adapter::RELATIONSHIPS).all
+      relationships = @connection.fetch(@adapter::RELATIONSHIPS).all
       # constraint_name,    | These three fields are
       # referencing_schema, | sufficient to identify
       # referencing_table,  | a relationship.
@@ -142,16 +150,14 @@ module Rubi
          referenced_table:   relationship[:referenced_table]}
       end.uniq
 
-      unique_relationships.each do |unique_relationship|
-        referencing_table = @graph.vertices.find do |table|
-          table.full_name == unique_relationship[:referencing_schema] +
-                       '.' + unique_relationship[:referencing_table]
-        end
+      unique_relationships.each do |r|
+        referencing_table = find_table(@name,
+                                       r[:referencing_schema],
+                                       r[:referencing_table])
 
-        referenced_table = @graph.vertices.find do |table|
-          table.full_name == unique_relationship[:referenced_schema] +
-                       '.' + unique_relationship[:referenced_table]
-        end
+        referenced_table = find_table(@name,
+                                      r[:referenced_schema],
+                                      r[:referenced_table])
 
         new_relationship = Relationship.new(
           unique_relationship[:constraint_name],
@@ -180,7 +186,7 @@ module Rubi
                                                 referenced_column]
         end
 
-        @graph.add_edge(new_relationship)
+        @relationships << new_relationship
       end
     end
   end

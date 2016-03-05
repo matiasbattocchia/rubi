@@ -1,41 +1,42 @@
 # Ruby business intelligence
 
-The built-in SQL backend of the framework provides ROLAP functionality on top a relational database. Rubi contains a SQL query generator that translates the reporting queries into SQL statements. The query generator takes into account topology of the schema and executes only joins that are necessary to retrieve attributes required by the data analyst.
+The built-in SQL backend of the framework provides ROLAP functionality on top a relational database.
+Rubi contains a SQL query generator that translates the reporting queries into SQL statements.
+The query generator takes into account topology of the schema and executes only joins
+that are necessary to retrieve attributes required by the data analyst.
 
 The SQL backend uses Sequel toolkit to construct the queries.
 
-Main algorithm
---------------
+## Main algorithm
 
 1. Get shortest paths between target vertices of a connected graph.
 2. Conform a complete graph of target vertices (nodes) and shortest paths (edges).
 3. Find the minimum spanning trees of the complete graph.
 4. Expand the minimum spanning trees into spanning trees of the original graph.
 
-TODO
-----
+## Database support
 
-- [x] PostgreSQL composite keys support.
-- [ ] MySQL support.
-- [ ] SQL Server support.
+- [x] PostgreSQL
+- [x] MySQL
+- [ ] SQL Server
 
-- [ ] Query optimization with EXPLAIN SQL command.
-- [ ] Caching.
-- [ ] Remember table/column OIDs.
-- [ ] Auto-reload files.
-
-- [ ] Export capabilities.
-- [ ] Security; user administration.
-
-Test database
--------------
+## Test database
 
 http://linux.dell.com/dvdstore
 
-1. Download and untar
+1. Download and untar:
   1. http://linux.dell.com/dvdstore/ds21.tar.gz
   2. http://linux.dell.com/dvdstore/ds21_postgresql.tar.gz
   3. http://linux.dell.com/dvdstore/ds21_mysql.tar.gz
   4. http://linux.dell.com/dvdstore/ds21_sqlserver.tar.gz
-2. cd ds2/pgsqlds2/
-3. sh pgsqlds2_create_all.sh
+2. Change to a specific database folder.
+3. Run the create all script.
+
+## TODO
+
+- [ ] Query optimization with EXPLAIN SQL command.
+- [ ] Caching.
+- [ ] Auto-reload files.
+
+- [ ] Export capabilities.
+- [ ] Security; user administration.

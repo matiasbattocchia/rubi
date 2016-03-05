@@ -18,31 +18,32 @@ describe Elements do
 
   describe Fact do
     it 'describes a fact' do
-      class Profit < Fact do
+      class Profit < Fact
         fact 'ds2.orders.netamount'
       end
     end
-      class Order < Attribute do
+
+      class Order < Attribute
         id 'ds2.orders.orderid'
         date 'ds2.orders.orderdate'
       end
 
-      class Category < Attribute do
+      class Category < Attribute
         id 'ds2.categories.category'
         name 'ds2.categories.categoryname'
       end
 
-      class Product < Attribute do
+      class Product < Attribute
         table 'ds2.products'
         id 'prod_id'
         _others 'title', 'actor'
       end
 
-      attribute Orderline do
-        table 'ds2.orderlines'
-        id 'orderlineid'
+
+        'table' 'ds2.orderlines'
+        'id 'orderlineid'
         date 'orderdate'
-      end
+      }
 
   end
 end
