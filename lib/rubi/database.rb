@@ -18,8 +18,12 @@ module Rubi
       @name = table_name
       @full_name = database_name + '.' + schema_name + '.' + table_name
       @sequel_name = (schema_name + '__' + table_name).to_sym
-      @columns = columns
-      @relationships = relationships
+      @columns = []
+      @relationships = []
+    end
+
+    def find_column(full_name)
+      @columns.find { |column| column.full_name == full_name }
     end
   end
 
@@ -95,6 +99,14 @@ module Rubi
       load_relationships
     end
 
+    def find_table(full_name)
+      @tables.find { |table| table.full_name == full_name }
+    end
+
+    def find_relationship(full_name)
+      @relationships.find { |relationship| relationship.full_name == full_name }
+    end
+
     private
 
     def load_tables
@@ -133,6 +145,8 @@ module Rubi
     end
 
     def load_relationships
+      dot = '.'.freeze
+
       relationships = @connection.fetch(@adapter::RELATIONSHIPS).all
       # constraint_name,    | These three fields are
       # referencing_schema, | sufficient to identify
@@ -150,41 +164,47 @@ module Rubi
          referenced_table:   relationship[:referenced_table]}
       end.uniq
 
-      unique_relationships.each do |r|
-        referencing_table = find_table(@name,
-                                       r[:referencing_schema],
-                                       r[:referencing_table])
+      unique_relationships.each do |unique|
+        referencing_table = find_table(
+          @name + dot +
+          unique[:referencing_schema] + dot +
+          unique[:referencing_table])
 
-        referenced_table = find_table(@name,
-                                      r[:referenced_schema],
-                                      r[:referenced_table])
+        referenced_table = find_table(
+          @name + dot +
+          unique[:referenced_schema] + dot +
+          unique[:referenced_table])
 
-        new_relationship = Relationship.new(
-          unique_relationship[:constraint_name],
-          referencing_table,
-          referenced_table)
+        referencing_columns = []
+        referenced_columns  = []
 
         pairs_of_columns = relationships.select do |relationship|
           relationship[:constraint_name]    ==
-            unique_relationship[:constraint_name] &&
+            unique[:constraint_name] &&
           relationship[:referencing_schema] ==
-            unique_relationship[:referencing_schema] &&
+            unique[:referencing_schema] &&
           relationship[:referencing_table]  ==
-            unique_relationship[:referencing_table]
+            unique[:referencing_table]
         end
 
         pairs_of_columns.each do |pair_of_columns|
-          referencing_column = referencing_table.columns.find do |column|
-            column.name == pair_of_columns[:referencing_column]
-          end
+          referencing_columns << referencing_table.find_column(
+            @name + dot +
+            unique[:referencing_schema] + dot +
+            unique[:referencing_table] + dot +
+            pair_of_columns[:referencing_column])
 
-          referenced_column = referenced_table.columns.find do |column|
-            column.name == pair_of_columns[:referenced_column]
-          end
-
-          new_relationship.pairs_of_columns << [referencing_column,
-                                                referenced_column]
+          referenced_columns << referenced_table.find_column(
+            @name + dot +
+            unique[:referenced_schema] + dot +
+            unique[:referenced_table] + dot +
+            pair_of_columns[:referenced_column])
         end
+
+        new_relationship = Relationship.new(
+          unique[:constraint_name],
+          referencing_table, referencing_columns,
+          referenced_table, referenced_columns)
 
         @relationships << new_relationship
       end

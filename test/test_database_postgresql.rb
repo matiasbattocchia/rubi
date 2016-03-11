@@ -13,19 +13,19 @@ describe Database, 'PostgreSQL' do
   end
 
   let(:table) do
-    db.tables.find { |table| table.full_name == 'public.orders' }
+    db.find_table('ds2.public.orders')
   end
 
   describe 'tables' do
     it 'returns an array with database tables' do
-      tables = ['public.categories',
-                'public.cust_hist',
-                'public.customers',
-                'public.inventory',
-                'public.orderlines',
-                'public.orders',
-                'public.products',
-                'public.reorder']
+      tables = ['ds2.public.categories',
+                'ds2.public.cust_hist',
+                'ds2.public.customers',
+                'ds2.public.inventory',
+                'ds2.public.orderlines',
+                'ds2.public.orders',
+                'ds2.public.products',
+                'ds2.public.reorder']
 
       db.tables.map(&:full_name).sort.must_equal tables
     end
@@ -33,51 +33,32 @@ describe Database, 'PostgreSQL' do
 
   describe 'columns' do
     it 'lists table columns' do
-      columns = ['public.orders.customerid',
-                 'public.orders.netamount',
-                 'public.orders.orderdate',
-                 'public.orders.orderid',
-                 'public.orders.tax',
-                 'public.orders.totalamount']
+      columns = ['ds2.public.orders.customerid',
+                 'ds2.public.orders.netamount',
+                 'ds2.public.orders.orderdate',
+                 'ds2.public.orders.orderid',
+                 'ds2.public.orders.tax',
+                 'ds2.public.orders.totalamount']
 
       table.columns.map(&:full_name).sort.must_equal columns
     end
   end
 
   describe 'column attributes' do
-    it 'recognizes primary keys' do
-      c = table.columns.find do |column|
-        column.full_name == 'public.orders.orderid'
-      end
+    it 'recognizes data types' do
+      table.find_column('ds2.public.orders.orderid')
+        .data_type.must_equal :integer
 
-      c.data_type.must_equal :integer
-      c.constraint_types.must_equal 'PRIMARY KEY'
-    end
-
-    it 'recognizes foreign keys' do
-      c = table.columns.find do |column|
-        column.full_name == 'public.orders.orderdate'
-      end
-
-      c.data_type.must_equal :date
-      c.constraint_types.must_be_nil
-    end
-
-    it 'recognizes normal columns' do
-      c = table.columns.find do |column|
-        column.full_name == 'public.orders.customerid'
-      end
-
-      c.data_type.must_equal :integer
-      c.constraint_types.must_equal 'FOREIGN KEY'
+      table.find_column('ds2.public.orders.orderdate')
+        .data_type.must_equal :date
     end
   end
 
   describe 'relationships' do
     it 'lists database relationships' do
-      relationships = ['public.cust_hist.fk_cust_hist_customerid',
-                       'public.orderlines.fk_orderid',
-                       'public.orders.fk_customerid']
+      relationships = ['ds2.public.cust_hist.fk_cust_hist_customerid',
+                       'ds2.public.orderlines.fk_orderid',
+                       'ds2.public.orders.fk_customerid']
 
       db.relationships.map(&:full_name).sort.must_equal relationships
     end
@@ -85,17 +66,16 @@ describe Database, 'PostgreSQL' do
 
   describe 'relationship attributes' do
     it 'describes a relationship' do
-      r = db.relationships.find do |relationship|
-        relationship.full_name == 'public.orders.fk_customerid'
-      end
+      r = db.find_relationship('ds2.public.orders.fk_customerid')
 
-      r.referencing_table.full_name.must_equal 'public.orders'
-      r.referenced_table.full_name.must_equal  'public.customers'
+      r.referencing_table.full_name.must_equal 'ds2.public.orders'
+      r.referenced_table.full_name.must_equal  'ds2.public.customers'
 
-      join_conditions =
-        [['public.orders.customerid', 'public.customers.customerid']]
+      r.referencing_columns.map(&:full_name).sort
+        .must_equal ['ds2.public.orders.customerid']
 
-      r.join_conditions.sort.must_equal join_conditions
+      r.referenced_columns.map(&:full_name).sort
+        .must_equal ['ds2.public.customers.customerid']
     end
   end
 end

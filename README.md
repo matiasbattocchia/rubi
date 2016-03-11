@@ -32,11 +32,21 @@ http://linux.dell.com/dvdstore
 2. Change to a specific database folder.
 3. Run the create all script.
 
+## Advanced features
+
+- [x] Attribute roles
+- [x] Multiple data sources
+- [x] Aggregation awareness
+- [ ] Data marts
+- [ ] Fact level extensions (degrade/extend/disallow)
+- [ ] Transformations
+- [ ] Partitioning
+
 ## TODO
 
-- [ ] Query optimization with EXPLAIN SQL command.
-- [ ] Caching.
-- [ ] Auto-reload files.
+- [ ] Query optimization with EXPLAIN SQL command
+- [ ] Caching
+- [ ] Auto-reload files
 
-- [ ] Export capabilities.
-- [ ] Security; user administration.
+- [ ] Export capabilities
+- [ ] Security; user administration
