@@ -41,6 +41,7 @@ http://linux.dell.com/dvdstore
 - [ ] Fact level extensions (degrade/extend/disallow)
 - [ ] Transformations
 - [ ] Partitioning
+- [ ] Consolidations, custom groups
 - [ ] Virtual spatial and time dimensions
 
 ## TODO

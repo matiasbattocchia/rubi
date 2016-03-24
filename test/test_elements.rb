@@ -59,25 +59,21 @@ describe Elements do
 
       forms:
         - {name: IATA code, expr: airport_id, role: id}
-        - name
-        - name: weird thing
-          expr: gsub(airport_id, /[AEIOU]/, "X")
+        - long name   # This form will seek long_name column.
 
-      qualifies: passengers carried
-
-
-      belongs to:
-        - {element: city, fkey: ciudad_id}
+      qualifies:
+        - element: passengers carried
+          key: origin_airport   # Not necessary if foreign key column
+                                # is named origin_airport_id.
 
       ---
 
       attribute: destination airport
       table: warehouse.public.airports
 
-      qualifies: passengers carried
-
-      belongs to:
-        - {element: city, fkey: ciudad_id}
+      qualifies:
+        - element: passengers carried
+          key: destination_airport
 
       ---
 
@@ -99,7 +95,14 @@ describe Elements do
       ---
 
       attribute: year
-      has: months
+      has:
+        - months
+        - strange things
+
+      ---
+
+      attribute: strange thing
+      has: years
 
       ---
 
