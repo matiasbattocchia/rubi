@@ -4,7 +4,7 @@ require 'yaml'
 
 include Rubi
 
-describe Elements do
+describe 'Elements' do
   let(:yaml_file) do
     <<-EOF
       # First field describes an element as
@@ -116,8 +116,12 @@ describe Elements do
   describe Universe do
     it "resembles elements' topology" do
       elements = YAML.load_stream(yaml_file)
-      u = Universe.new(*elements)
+      u = Universe.new(elements)
 
+
+    end
+  end
+end
 
 
 
